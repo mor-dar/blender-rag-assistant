@@ -2,19 +2,19 @@
 
 ## Phase 1: Project Setup & Foundation
 ### Environment & Dependencies
-- [ ] Create and configure virtual environment (Python 3.9+)
-- [ ] Create comprehensive `requirements.txt` with all dependencies
-  - [ ] LangChain and extensions
-  - [ ] ChromaDB for vector storage
-  - [ ] HuggingFace sentence-transformers
-  - [ ] Groq SDK for LLM API
-  - [ ] OpenAI SDK (optional scaling)
-  - [ ] Pydantic for data validation
-  - [ ] python-dotenv for configuration
-  - [ ] pytest for testing
-  - [ ] tiktoken for token counting
+- [x] Create and configure virtual environment (Python 3.9+) - *Using Docker container*
+- [x] Create comprehensive `requirements.txt` with all dependencies
+  - [x] LangChain and extensions
+  - [x] ChromaDB for vector storage
+  - [x] HuggingFace sentence-transformers
+  - [x] Groq SDK for LLM API
+  - [x] OpenAI SDK (optional scaling)
+  - [x] Pydantic for data validation
+  - [x] python-dotenv for configuration
+  - [x] pytest for testing
+  - [x] tiktoken for token counting
 - [ ] Create `.env.example` template with all required variables
-- [ ] Set up `.gitignore` for Python project
+- [x] Set up `.gitignore` for Python project
 - [ ] Configure logging system
 
 ### Project Structure
@@ -183,7 +183,7 @@
 - [ ] Remove debug code and TODOs
 
 ## Cool Bonus Features (Nice to have ideas)
-- [ ] Create Docker containerization
+- [x] Create Docker containerization
 - [ ] Add streaming response support
 - [ ] Implement caching layer for common queries
 - [ ] Create web interface with Streamlit
