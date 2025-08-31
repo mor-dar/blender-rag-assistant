@@ -209,3 +209,5 @@ __marimo__/
 # Local files
 .devcontainer
 *.sh
+data/raw
+lectures

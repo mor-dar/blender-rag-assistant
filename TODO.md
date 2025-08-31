@@ -40,10 +40,6 @@
   - [x] Configurable chunk size (512-1024 tokens)
   - [x] Overlapping chunks for context preservation
   - [x] Preserve document structure metadata in chunks
-- [ ] Build preprocessing pipeline (`preprocessor.py`)
-  - [ ] Text cleaning and normalization
-  - [ ] Code block handling
-  - [ ] Special character processing
 
 ## Phase 3: Vector Store & Retrieval System
 ### Embedding System (`src/retrieval/`)
@@ -228,6 +224,12 @@
   - [ ] Measure chunk coherence and semantic integrity
   - [ ] Validate with Blender-specific use cases and queries
 
+## Phase 13: Advanced Preprocessing (Future Enhancement)
+- [ ] Build preprocessing pipeline (`preprocessor.py`)
+  - [ ] Text cleaning and normalization
+  - [ ] Code block handling
+  - [ ] Special character processing
+  
 ## Cool Bonus Features (Nice to have ideas)
 - [x] Create Docker containerization
 - [ ] Add streaming response support
