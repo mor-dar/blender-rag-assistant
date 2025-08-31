@@ -28,16 +28,18 @@
 
 ## Phase 2: Data Gathering and Preprocessing
 ### Data Collection
-- [ ] Download Blender documentation (CC-BY-SA 4.0 licensed)
-  - [ ] Identify core sections to keep assignment small-ish (~5 sections)
+- [x] Download Blender documentation (CC-BY-SA 4.0 licensed)
+  - [x] Identify core sections to keep assignment small-ish (~5 sections)
 
 ### Document Prep (`src/data/`)
-- [ ] Implement document loader script (`document_loader.py`)
-  - [ ] Extract metadata (title, section, subsection)
-- [ ] Create text chunking system (`chunker.py`)
-  - [ ] Configurable chunk size (512-1024 tokens)
-  - [ ] Overlapping chunks for context preservation
-  - [ ] Preserve document structure metadata
+- [x] Implement document loader script (`document_processor.py`)
+  - [x] Extract metadata (title, section, subsection)
+  - [x] Extract HTML hierarchy and heading structure
+  - [x] Classify content type (procedural, reference, conceptual, etc.)
+- [x] Create text chunking system (`document_processor.py`)
+  - [x] Configurable chunk size (512-1024 tokens)
+  - [x] Overlapping chunks for context preservation
+  - [x] Preserve document structure metadata in chunks
 - [ ] Build preprocessing pipeline (`preprocessor.py`)
   - [ ] Text cleaning and normalization
   - [ ] Code block handling
@@ -181,6 +183,50 @@
 - [ ] Fix all linting issues (ruff)
 - [ ] Ensure 80%+ test coverage
 - [ ] Remove debug code and TODOs
+
+## Phase 12: Enhanced Chunking Strategy (Future Enhancement)
+### Structural/Semantic Chunking Upgrade
+- [ ] **Analysis & Planning**
+  - [ ] Analyze current fixed-size token chunking limitations
+  - [ ] Research hybrid structural + semantic chunking approaches
+  - [ ] Design chunking strategy specific to technical documentation
+  
+- [ ] **HTML Structure Parser (`src/data/processing/structure_parser.py`)**
+  - [ ] Parse HTML document hierarchy (h1, h2, h3, sections, lists)
+  - [ ] Identify content blocks and their relationships
+  - [ ] Extract procedural steps and maintain their sequence
+  - [ ] Preserve code blocks and examples as units
+  
+- [ ] **Semantic Chunking Engine (`src/data/processing/semantic_chunker.py`)**
+  - [ ] Implement topic boundary detection using embeddings
+  - [ ] Create content coherence scoring for chunk quality
+  - [ ] Handle Blender-specific terminology and concepts
+  - [ ] Maintain context between related procedures
+  
+- [ ] **Hybrid Chunking Pipeline (`src/data/processing/hybrid_chunker.py`)**
+  - [ ] **Primary Strategy**: Split on HTML structural boundaries (sections, headings)
+  - [ ] **Secondary Strategy**: Use semantic similarity for large sections
+  - [ ] **Size Constraints**: Ensure chunks fit embedding model limits (512-1024 tokens)
+  - [ ] **Smart Overlap**: Preserve context at structural boundaries
+  - [ ] **Procedural Integrity**: Keep step-by-step instructions together
+  
+- [ ] **Implementation Details**
+  - [ ] Replace current `chunk_text()` method with structural approach
+  - [ ] Add chunking strategy configuration options
+  - [ ] Implement backward compatibility for existing vector databases
+  - [ ] Create migration script for re-chunking existing data
+  
+- [ ] **Quality Improvements Expected**
+  - [ ] Better retrieval: Complete procedural steps returned together
+  - [ ] Context preservation: Tool explanations stay with usage instructions
+  - [ ] Feature isolation: Modeling techniques don't mix with animation workflows
+  - [ ] Natural boundaries: Sections like "Basic Operations" stay intact
+  
+- [ ] **Testing & Validation**
+  - [ ] Create test suite for new chunking strategies
+  - [ ] Compare retrieval quality: structural vs. fixed-size chunking
+  - [ ] Measure chunk coherence and semantic integrity
+  - [ ] Validate with Blender-specific use cases and queries
 
 ## Cool Bonus Features (Nice to have ideas)
 - [x] Create Docker containerization
