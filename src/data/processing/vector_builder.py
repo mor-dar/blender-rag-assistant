@@ -2,26 +2,26 @@
 """
 Vector Database Builder for Blender RAG Assistant
 
-Handles ChromaDB initialization and population with document chunks.
+Orchestrates document processing and vector database creation.
+Coordinates between document processing, embedding generation, and vector storage.
 """
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
-try:
-    import chromadb
-    from chromadb.config import Settings
-except ImportError as e:
-    raise ImportError(f"Missing required package: {e}")
-
 from .document_processor import DocumentProcessor
+
+# Import retrieval components
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from retrieval import EmbeddingGenerator, VectorStore
 
 
 class VectorDBBuilder:
-    """Builds and manages ChromaDB vector database from processed documents."""
+    """Orchestrates vector database building from document processing to storage."""
     
     def __init__(self, config: Dict, db_path: Path):
         """Initialize the vector database builder.
@@ -32,15 +32,17 @@ class VectorDBBuilder:
         """
         self.config = config
         self.db_path = db_path
+        
+        # Initialize components
         self.processor = DocumentProcessor(config)
+        self.embedding_generator = EmbeddingGenerator(config["embedding_model"])
+        self.vector_store = VectorStore(db_path)
         
-        # Initialize ChromaDB
-        self.db_path.mkdir(parents=True, exist_ok=True)
-        self.client = chromadb.PersistentClient(
-            path=str(self.db_path),
-            settings=Settings(anonymized_telemetry=False)
+        # Setup logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
         )
-        
         self.logger = logging.getLogger(__name__)
 
     def build_collection(self, collection_name: str, raw_dir: Path, collection_metadata: Dict = None) -> Dict:
@@ -54,22 +56,11 @@ class VectorDBBuilder:
         Returns:
             Build metadata dictionary
         """
-        # Delete existing collection if it exists
-        try:
-            self.client.delete_collection(collection_name)
-            self.logger.info(f"Deleted existing collection: {collection_name}")
-        except Exception:
-            pass  # Collection doesn't exist
-        
-        # Prepare collection metadata
-        metadata = {"created_at": datetime.now().isoformat()}
-        if collection_metadata:
-            metadata.update(collection_metadata)
-        
-        # Create new collection
-        collection = self.client.create_collection(
+        # Create collection using vector store
+        collection = self.vector_store.create_collection(
             name=collection_name,
-            metadata=metadata
+            metadata=collection_metadata,
+            replace=True
         )
         
         # Process documents
@@ -77,7 +68,16 @@ class VectorDBBuilder:
         
         if not chunks:
             self.logger.warning("No chunks to process!")
-            return {"chunks_added": 0, "collection_name": collection_name}
+            build_metadata = {
+                "collection_name": collection_name,
+                "chunks_added": 0,
+                "config": self.config,
+                "built_at": datetime.now().isoformat(),
+                "source_dir": str(raw_dir),
+                "collection_metadata": collection_metadata or {}
+            }
+            self.vector_store.save_build_metadata(collection_name, build_metadata)
+            return build_metadata
         
         # Add chunks to database in batches
         batch_size = self.config["batch_size"]
@@ -91,21 +91,25 @@ class VectorDBBuilder:
             metadatas = [chunk["metadata"] for chunk in batch]
             ids = [chunk["metadata"]["chunk_id"] for chunk in batch]
             
-            # Generate embeddings
-            embeddings = self.processor.embedding_model.encode(texts).tolist()
+            # Generate embeddings using embedding generator
+            embeddings = self.embedding_generator.encode_batch(texts)
             
-            # Add to collection
-            collection.add(
-                embeddings=embeddings,
+            # Add to vector store
+            success = self.vector_store.add_documents(
+                collection_name=collection_name,
                 documents=texts,
+                embeddings=embeddings,
                 metadatas=metadatas,
                 ids=ids
             )
             
-            total_added += len(batch)
-            self.logger.info(f"Added batch {i//batch_size + 1}, total chunks: {total_added}")
+            if success:
+                total_added += len(batch)
+                self.logger.info(f"Added batch {i//batch_size + 1}, total chunks: {total_added}")
+            else:
+                self.logger.error(f"Failed to add batch {i//batch_size + 1}")
         
-        # Save build metadata
+        # Build and save metadata
         build_metadata = {
             "collection_name": collection_name,
             "chunks_added": total_added,
@@ -115,10 +119,7 @@ class VectorDBBuilder:
             "collection_metadata": collection_metadata or {}
         }
         
-        metadata_path = self.db_path / f"build_metadata_{collection_name}.json"
-        with open(metadata_path, 'w') as f:
-            json.dump(build_metadata, f, indent=2)
-        
+        self.vector_store.save_build_metadata(collection_name, build_metadata)
         return build_metadata
 
     def get_collection_info(self, collection_name: str) -> Dict:
@@ -130,15 +131,7 @@ class VectorDBBuilder:
         Returns:
             Collection information dictionary
         """
-        try:
-            collection = self.client.get_collection(collection_name)
-            return {
-                "name": collection_name,
-                "count": collection.count(),
-                "metadata": collection.metadata
-            }
-        except Exception as e:
-            return {"error": str(e)}
+        return self.vector_store.get_collection_info(collection_name)
 
     def list_collections(self) -> List[str]:
         """List all available collections.
@@ -146,9 +139,4 @@ class VectorDBBuilder:
         Returns:
             List of collection names
         """
-        try:
-            collections = self.client.list_collections()
-            return [col.name for col in collections]
-        except Exception as e:
-            self.logger.error(f"Failed to list collections: {e}")
-            return []
+        return self.vector_store.list_collections()

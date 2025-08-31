@@ -13,7 +13,6 @@ from typing import Dict, List, Tuple
 
 try:
     from bs4 import BeautifulSoup
-    from sentence_transformers import SentenceTransformer
     import tiktoken
 except ImportError as e:
     raise ImportError(f"Missing required package: {e}")
@@ -26,10 +25,9 @@ class DocumentProcessor:
         """Initialize the document processor.
         
         Args:
-            config: Configuration dictionary with embedding_model, chunk_size, etc.
+            config: Configuration dictionary with chunk_size, etc.
         """
         self.config = config
-        self.embedding_model = SentenceTransformer(config["embedding_model"])
         self.tokenizer = tiktoken.get_encoding("cl100k_base")  # GPT-4 tokenizer
         
         # Setup logging

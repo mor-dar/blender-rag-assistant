@@ -73,7 +73,8 @@ class TestVectorDBBuilder:
         
         assert builder.config == test_config
         assert builder.db_path == temp_db_path
-        assert builder.client is not None
+        assert builder.vector_store is not None
+        assert builder.embedding_generator is not None
         assert builder.processor is not None
 
     def test_build_collection_success(self, test_config, temp_db_path, temp_raw_dir):
@@ -212,7 +213,7 @@ class TestVectorDBBuilder:
 
     # ERROR HANDLING TESTS
 
-    @patch('chromadb.PersistentClient')
+    @patch('retrieval.vector_store.chromadb.PersistentClient')
     def test_chromadb_initialization_failure(self, mock_client_class, test_config, temp_db_path):
         """Test handling of ChromaDB initialization failure."""
         mock_client_class.side_effect = Exception("Database connection failed")
@@ -236,7 +237,7 @@ class TestVectorDBBuilder:
         finally:
             shutil.rmtree(temp_dir)
 
-    @patch('src.data.processing.vector_builder.DocumentProcessor')
+    @patch('data.processing.vector_builder.DocumentProcessor')
     def test_document_processing_failure(self, mock_processor_class, test_config, temp_db_path, temp_raw_dir):
         """Test handling of document processing failure."""
         # Mock processor to raise exception
@@ -318,7 +319,7 @@ class TestVectorDBBuilder:
 class TestVectorDBBuilderPerformance:
     """Performance-focused tests for VectorDBBuilder."""
 
-    def test_large_batch_processing(self, temp_db_path):
+    def test_large_batch_processing(self, temp_db):
         """Test handling of large batch sizes."""
         config = {
             "embedding_model": "all-MiniLM-L6-v2",
@@ -338,7 +339,7 @@ class TestVectorDBBuilderPerformance:
                 html = f"<html><body><p>Document {i} content here.</p></body></html>"
                 (raw_dir / f"doc_{i}.html").write_text(html)
             
-            builder = VectorDBBuilder(config, temp_db_path)
+            builder = VectorDBBuilder(config, temp_db)
             result = builder.build_collection("large_batch_test", raw_dir)
             
             assert result["chunks_added"] > 0
@@ -346,7 +347,7 @@ class TestVectorDBBuilderPerformance:
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_memory_usage_with_large_files(self, test_config, temp_db_path):
+    def test_memory_usage_with_large_files(self, standard_config, temp_db):
         """Test memory handling with large document."""
         temp_dir = tempfile.mkdtemp()
         try:
@@ -357,7 +358,7 @@ class TestVectorDBBuilderPerformance:
             large_content = "<html><body>" + "<p>Large document content. " * 1000 + "</p></body></html>"
             (raw_dir / "large_doc.html").write_text(large_content)
             
-            builder = VectorDBBuilder(test_config, temp_db_path)
+            builder = VectorDBBuilder(standard_config, temp_db)
             result = builder.build_collection("large_file_test", raw_dir)
             
             # Should handle large file without crashing

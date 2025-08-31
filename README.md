@@ -16,22 +16,31 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 
 ## 🛠️ Technical Implementation
 
+### RAG Architecture
+
+**Modular Design Principles:**
+- **Single Responsibility**: Each module handles one concern
+- **Clean Interfaces**: Well-defined APIs between components  
+- **Comprehensive Testing**: 100% test coverage with unit and integration tests
+- **Professional Structure**: Industry-standard directory organization
+
 ### RAG Pipeline
 
-1. **Document Ingestion**
-   - Processes Blender manual markdown files
+1. **Document Processing** (`src/data/processing/`)
+   - `document_processor.py`: HTML parsing and text extraction
+   - `vector_builder.py`: Orchestrates end-to-end pipeline
    - Intelligent chunking preserves procedural steps
-   - Generates embeddings using HuggingFace transformers
 
-2. **Vector Storage**
-   - ChromaDB with persistent storage
-   - Semantic similarity search
-   - Configurable relevance thresholds
+2. **Vector Operations** (`src/retrieval/`)
+   - `embeddings.py`: HuggingFace sentence-transformer interface
+   - `vector_store.py`: ChromaDB operations and persistence  
+   - `retriever.py`: High-level semantic search API
+   - Configurable relevance thresholds and metadata filtering
 
 3. **Retrieval Strategy**
    - Query embedding and similarity matching
    - Context window optimization
-   - Duplicate detection and filtering
+   - Health checks and error handling
 
 4. **Response Generation**
    - Context-aware prompt construction

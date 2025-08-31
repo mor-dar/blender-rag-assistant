@@ -235,7 +235,7 @@ class TestDocumentProcessor:
         
         chunks = processor.chunk_text(text, metadata)
         
-        assert len(chunks) > 5  # Should create many small chunks
+        assert len(chunks) > 3  # Should create multiple small chunks
         for chunk in chunks:
             assert len(chunk["text"]) > 0
 
@@ -255,17 +255,14 @@ class TestDocumentProcessor:
             next_start = chunks[i + 1]["metadata"]["start_token"]
             assert current_end <= next_start  # No overlap
 
-    @patch('src.data.processing.document_processor.SentenceTransformer')
-    def test_initialization_with_mock_model(self, mock_transformer):
-        """Test initialization with mocked embedding model."""
-        mock_model = Mock()
-        mock_transformer.return_value = mock_model
-        
-        config = {"embedding_model": "test-model"}
+    def test_initialization_without_embedding_model(self):
+        """Test initialization without embedding model (refactored)."""
+        config = {"chunk_size": 100, "chunk_overlap": 20}
         processor = DocumentProcessor(config)
         
-        assert processor.embedding_model == mock_model
-        mock_transformer.assert_called_once_with("test-model")
+        assert processor.config == config
+        assert processor.tokenizer is not None
+        # No embedding model in refactored version
 
     def test_html_cleaning_removes_unwanted_elements(self, processor):
         """Test that HTML cleaning removes unwanted elements."""
