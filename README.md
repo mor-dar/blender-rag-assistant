@@ -58,6 +58,12 @@ This project incorporates content from the **Blender Manual** by the **Blender D
 - **License**: CC-BY-SA 4.0
 - **Attribution**: Blender Documentation Team
 
+### Development Attribution
+
+This project was developed with assistance from **Anthropic's Claude AI**, which contributed to:
+- Documentation structure and technical writing
+- Comprehensive test suite development and coverage
+
 ### Usage Rights
 
 You are free to:
