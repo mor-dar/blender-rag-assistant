@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 try:
-    from data.processing import VectorDBBuilder
+    from data.processing import VectorDBBuilder  # type: ignore[import-untyped]
 except ImportError as e:
     print(f"Missing required package: {e}")
     print("Install with: pip install -r requirements.txt")

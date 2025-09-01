@@ -9,7 +9,7 @@ Coordinates between document processing, embedding generation, and vector storag
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Any
 
 from .document_processor import DocumentProcessor
 
@@ -45,7 +45,7 @@ class VectorDBBuilder:
         )
         self.logger = logging.getLogger(__name__)
 
-    def build_collection(self, collection_name: str, raw_dir: Path, collection_metadata: Dict = None) -> Dict:
+    def build_collection(self, collection_name: str, raw_dir: Path, collection_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Build vector database collection from documents.
         
         Args:

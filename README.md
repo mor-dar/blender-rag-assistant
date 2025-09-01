@@ -22,7 +22,6 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 - **Single Responsibility**: Each module handles one concern
 - **Clean Interfaces**: Well-defined APIs between components  
 - **Comprehensive Testing**: 100% test coverage with unit and integration tests
-- **Professional Structure**: Industry-standard directory organization
 
 ### RAG Pipeline
 
@@ -72,6 +71,7 @@ This project incorporates content from the **Blender Manual** by the **Blender D
 This project was developed with assistance from **Anthropic's Claude AI**, which contributed to:
 - Documentation structure and technical writing
 - Comprehensive test suite development and coverage
+- HTML to text conversion cleanup (strange characters)
 
 ### Usage Rights
 

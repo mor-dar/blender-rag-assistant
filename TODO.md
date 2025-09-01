@@ -59,6 +59,25 @@
   - [x] Semantic search with vector embeddings
   - [x] Relevance scoring and ranking
 
+### Encoding Issue Fixes ✅ **IMPLEMENTATION COMPLETE - Database Rebuild Required**
+- [x] Fix HTML encoding artifacts (`src/data/processing/text_cleaner.py`)
+  - [x] HTML entity decoding (`Â¶` → `¶`, `â£` → `→`)
+  - [x] Unicode normalization (NFKC) for mixed encodings
+  - [x] Special character cleaning for malformed UTF-8
+  - [x] Preserve technical symbols and code blocks properly
+  - [x] **Comprehensive unit tests**: 31 tests covering all functionality
+  - [x] **Integration with DocumentProcessor**: Automatic cleaning during processing
+  - [x] **Search impact verified**: Current database still has artifacts, confirming need for rebuild
+- [ ] Optimize chunking strategy for technical documentation
+  - [ ] Increase chunk size from 512 to 1024+ tokens for better context
+  - [ ] Adjust overlap ratio for technical content (25% instead of 10%)
+  - [ ] Preserve procedural steps and code examples as complete units
+  - [ ] Test chunk boundary detection to avoid splitting mid-sentence
+- [ ] Improve embedding quality for technical content
+  - [ ] Evaluate alternative embedding models (`all-mpnet-base-v2`, `text-embedding-ada-002`)
+  - [ ] Test domain-specific preprocessing for Blender terminology
+  - [ ] Implement embedding model comparison and benchmarking
+
 ## Phase 4: RAG Implementation
 ### Core RAG (`src/rag/`)
 - [ ] Create base RAG (`rag.py`)

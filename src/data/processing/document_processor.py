@@ -9,13 +9,15 @@ import hashlib
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 try:
     from bs4 import BeautifulSoup
     import tiktoken
 except ImportError as e:
     raise ImportError(f"Missing required package: {e}")
+
+from .text_cleaner import TextCleaner
 
 
 class DocumentProcessor:
@@ -29,6 +31,7 @@ class DocumentProcessor:
         """
         self.config = config
         self.tokenizer = tiktoken.get_encoding("cl100k_base")  # GPT-4 tokenizer
+        self.text_cleaner = TextCleaner()
         
         # Setup logging
         logging.basicConfig(
@@ -57,6 +60,7 @@ class DocumentProcessor:
             # Extract title
             title_elem = soup.find('title')
             title = title_elem.get_text().strip() if title_elem else file_path.stem
+            title = self.text_cleaner.clean_text(title)
             
             # Extract main content
             content_elem = soup.find('main') or soup.find('article') or soup.find('body')
@@ -65,8 +69,8 @@ class DocumentProcessor:
             else:
                 text = soup.get_text(separator=' ', strip=True)
             
-            # Clean up text
-            text = ' '.join(text.split())  # Normalize whitespace
+            # Clean up text using advanced text cleaner
+            text = self.text_cleaner.clean_text(text)
             
             # Extract hierarchical structure from HTML
             hierarchy = self._extract_html_hierarchy(soup)
@@ -123,7 +127,7 @@ class DocumentProcessor:
         except Exception:
             return "[]"
 
-    def _extract_html_hierarchy(self, soup) -> Dict:
+    def _extract_html_hierarchy(self, soup) -> Dict[str, Any]:
         """Extract hierarchical structure and metadata from HTML document.
         
         Args:
@@ -132,7 +136,7 @@ class DocumentProcessor:
         Returns:
             Dictionary with hierarchy information
         """
-        hierarchy = {
+        hierarchy: Dict[str, Any] = {
             "headings": [],
             "subsection": "",
             "content_type": "general"
