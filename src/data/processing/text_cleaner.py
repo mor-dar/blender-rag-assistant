@@ -20,11 +20,13 @@ class TextCleaner:
         
         # Common HTML encoding artifacts found in Blender docs
         self.encoding_fixes = {
-            # Pilcrow signs (¶) with encoding issues
-            'Â¶': '¶',
+            # Pilcrow signs (¶) - remove entirely as they don't help semantic search
+            'Â¶': '',  # Remove broken pilcrow
+            '¶': '',   # Remove clean pilcrow too
             
             # Arrow characters with encoding issues (these are multi-byte sequences)
             'â£': '→',
+            'â\x80£': '→',  # 3-byte variant found in HTML
             'â†': '→',
             
             # Degree and other common symbols

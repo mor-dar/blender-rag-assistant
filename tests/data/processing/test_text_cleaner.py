@@ -72,11 +72,11 @@ class TestTextCleaner:
 
     # Encoding Artifacts Tests
     def test_encoding_artifacts_pilcrow(self, cleaner):
-        """Test fixing pilcrow sign encoding issues."""
+        """Test removal of pilcrow signs (don't help semantic search)."""
         test_cases = [
-            ("Add Cube Â¶", "Add Cube ¶"),
-            ("Usage Â¶ First step", "Usage ¶ First step"),
-            ("Multiple Â¶ sections Â¶ here", "Multiple ¶ sections ¶ here"),
+            ("Add Cube Â¶", "Add Cube "),
+            ("Usage Â¶ First step", "Usage  First step"),
+            ("Multiple Â¶ sections ¶ here", "Multiple  sections  here"),
         ]
         
         for input_text, expected in test_cases:
@@ -224,8 +224,8 @@ class TestTextCleaner:
         result = cleaner.clean_text(input_text)
         
         # Check that encoding issues are fixed
-        assert "Â¶" not in result, "Should fix pilcrow encoding"
-        assert "¶" in result, "Should contain proper pilcrow"
+        assert "Â¶" not in result, "Should remove pilcrow artifacts"
+        assert "¶" not in result, "Should remove pilcrow symbols entirely" 
         assert "â£" not in result, "Should fix arrow encoding"
         assert "→" in result, "Should contain proper arrow"
         
@@ -254,7 +254,8 @@ class TestTextCleaner:
         
         # Should preserve paragraph structure (double newlines become single)
         assert result.count('\n') == 2, "Should preserve paragraph structure"
-        assert "¶" in result, "Should fix pilcrow"
+        assert "¶" not in result, "Should remove pilcrow symbols"
+        assert "Â¶" not in result, "Should remove pilcrow artifacts"
         assert "→" in result, "Should fix arrow"
 
     # Analysis and Statistics Tests
@@ -306,7 +307,7 @@ class TestTextCleaner:
         result = cleaner.clean_batch(input_texts)
         
         assert len(result) == len(input_texts)
-        assert "¶" in result[0], "Should fix first text"
+        assert "Â¶" not in result[0], "Should remove pilcrow artifacts"
         assert "→" in result[1], "Should fix second text"
         assert result[2] == "Clean text 3", "Should preserve clean text"
 
@@ -324,7 +325,7 @@ class TestTextCleaner:
         assert len(result) == 4
         assert result[0] == ""
         assert result[1] == ""
-        assert result[2] == "¶"
+        assert result[2] == ""  # Pilcrow removed entirely
         assert result[3] == "Normal text"
 
     # Edge Cases and Error Handling
@@ -341,7 +342,8 @@ class TestTextCleaner:
         
         assert len(result) > 0
         assert "Â¶" not in result
-        assert "¶" in result
+        # Pilcrows are removed entirely, so check for clean text
+        assert "Text with issue" in result
 
     def test_edge_case_unicode_edge_cases(self, cleaner):
         """Test handling of various Unicode edge cases."""
@@ -361,11 +363,12 @@ class TestTextCleaner:
         mixed_text = "Â¶ pilcrow and â£ arrow and Â° degree all together"
         result = cleaner.clean_text(mixed_text)
         
-        # All should be fixed
+        # All artifacts should be fixed
         assert "Â¶" not in result
         assert "â£" not in result
         assert "Â°" not in result
-        assert "¶" in result
+        # Pilcrow removed, arrow and degree fixed
+        assert "¶" not in result  # Pilcrow removed entirely
         assert "→" in result
         assert "°" in result
 
