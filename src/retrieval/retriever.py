@@ -8,19 +8,21 @@ and result formatting for RAG applications.
 """
 
 import logging
-from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .embeddings import EmbeddingGenerator
-from .vector_store import VectorStore
+from utils.config import CHROMA_COLLECTION_NAME, CHROMA_PERSIST_DIRECTORY, EMBEDDING_MODEL, RETRIEVAL_K  # type: ignore[import-not-found]
+
+from .embeddings import EmbeddingGenerator  # type: ignore[import-untyped]
+from .vector_store import VectorStore  # type: ignore[import-untyped]
 
 
 @dataclass
 class RetrievalResult:
     """Container for retrieval results."""
     text: str
-    metadata: Dict
+    metadata: Dict[str, Any]
     score: float
     
 
@@ -28,9 +30,9 @@ class SemanticRetriever:
     """High-level interface for semantic document retrieval."""
     
     def __init__(self, 
-                 db_path: Path,
-                 embedding_model: str = "all-MiniLM-L6-v2",
-                 collection_name: str = "blender_docs_demo"):
+                 db_path: Path = CHROMA_PERSIST_DIRECTORY,
+                 embedding_model: str = EMBEDDING_MODEL,
+                 collection_name: str = CHROMA_COLLECTION_NAME):
         """Initialize the semantic retriever.
         
         Args:
@@ -66,9 +68,9 @@ class SemanticRetriever:
 
     def retrieve(self, 
                 query: str,
-                k: int = 5,
+                k: int = RETRIEVAL_K,
                 collection_name: Optional[str] = None,
-                metadata_filter: Optional[Dict] = None,
+                metadata_filter: Optional[Dict[str, Any]] = None,
                 min_score: float = 0.0) -> List[RetrievalResult]:
         """Retrieve relevant documents for a query.
         
@@ -104,7 +106,7 @@ class SemanticRetriever:
                 return []
             
             # Convert results to RetrievalResult objects
-            retrieval_results = []
+            retrieval_results: List[RetrievalResult] = []
             documents = results["documents"][0]  # First query results
             metadatas = results["metadatas"][0]
             distances = results["distances"][0]
@@ -129,7 +131,7 @@ class SemanticRetriever:
 
     def retrieve_with_context(self,
                             query: str,
-                            k: int = 5,
+                            k: int = RETRIEVAL_K,
                             context_window: int = 1,
                             collection_name: Optional[str] = None) -> List[RetrievalResult]:
         """Retrieve documents with surrounding context chunks.
@@ -155,7 +157,7 @@ class SemanticRetriever:
         return primary_results
 
     def search_by_metadata(self,
-                          metadata_filter: Dict,
+                          metadata_filter: Dict[str, Any],
                           k: int = 10,
                           collection_name: Optional[str] = None) -> List[RetrievalResult]:
         """Search documents by metadata criteria only.
@@ -172,7 +174,7 @@ class SemanticRetriever:
         
         try:
             # Create a dummy query embedding (won't be used for filtering)
-            dummy_embedding = [0.0] * self.embedding_generator.get_embedding_dimension()
+            dummy_embedding: List[float] = [0.0] * self.embedding_generator.get_embedding_dimension()
             
             # Search with metadata filter only
             results = self.vector_store.query_collection(
@@ -187,7 +189,7 @@ class SemanticRetriever:
                 return []
             
             # Convert to RetrievalResult objects (no meaningful scores)
-            retrieval_results = []
+            retrieval_results: List[RetrievalResult] = []
             documents = results["documents"][0]
             metadatas = results["metadatas"][0]
             
@@ -206,7 +208,7 @@ class SemanticRetriever:
 
     def get_similar_documents(self,
                             document_text: str,
-                            k: int = 5,
+                            k: int = RETRIEVAL_K,
                             collection_name: Optional[str] = None,
                             exclude_exact_match: bool = True) -> List[RetrievalResult]:
         """Find documents similar to a given document.
@@ -224,7 +226,7 @@ class SemanticRetriever:
         
         if exclude_exact_match:
             # Filter out exact matches based on text similarity
-            filtered_results = []
+            filtered_results: List[RetrievalResult] = []
             for result in results:
                 if result.text.strip() != document_text.strip():
                     filtered_results.append(result)
@@ -234,7 +236,7 @@ class SemanticRetriever:
         
         return results[:k]
 
-    def get_retriever_info(self) -> Dict:
+    def get_retriever_info(self) -> Dict[str, Any]:
         """Get information about the retriever configuration.
         
         Returns:
@@ -268,13 +270,13 @@ class SemanticRetriever:
             self.logger.warning(f"Collection '{collection_name}' not found")
             return False
 
-    def health_check(self) -> Dict:
+    def health_check(self) -> Dict[str, Any]:
         """Perform a health check of the retrieval system.
         
         Returns:
             Dictionary with health check results
         """
-        health = {
+        health: Dict[str, Any] = {
             "status": "healthy",
             "issues": []
         }

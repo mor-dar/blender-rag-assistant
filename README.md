@@ -73,6 +73,78 @@ This project was developed with assistance from **Anthropic's Claude AI**, which
 - Comprehensive test suite development and coverage
 - HTML to text conversion cleanup (strange characters)
 
+## Configuration
+
+The system is highly configurable through environment variables. Copy `.env.example_full` to `.env` and customize as needed.
+
+### Environment Variables
+
+#### RAG Mode Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `RAG_MODE` | string | "evaluation" | Operation mode: "evaluation" (Groq) or "production" (OpenAI) |
+| `GROQ_API_KEY` | string | None | API key for Groq (required in evaluation mode) |
+| `GROQ_MODEL` | string | "llama3-8b-8192" | Groq model name |
+| `GROQ_TEMPERATURE` | float | 0.7 | Temperature for Groq generation |
+| `GROQ_MAX_TOKENS` | int | 2048 | Max tokens for Groq responses |
+| `OPENAI_API_KEY` | string | None | API key for OpenAI (required in production mode) |
+| `OPENAI_MODEL` | string | "gpt-4" | OpenAI model name |
+| `OPENAI_TEMPERATURE` | float | 0.7 | Temperature for OpenAI generation |
+| `OPENAI_MAX_TOKENS` | int | 2048 | Max tokens for OpenAI responses |
+
+#### Vector Database Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CHROMA_PERSIST_DIRECTORY` | string | "./data/vector_db" | ChromaDB persistence directory |
+| `CHROMA_COLLECTION_NAME` | string | "blender_docs" | Default collection name |
+
+#### Embedding Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `EMBEDDING_MODEL` | string | "all-MiniLM-L6-v2" | HuggingFace embedding model |
+| `EMBEDDING_DEVICE` | string | "cpu" | Device for embeddings: "cpu" or "cuda" |
+| `EMBEDDING_BATCH_SIZE` | int | 32 | Batch size for embedding generation |
+
+#### Retrieval Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `RETRIEVAL_K` | int | 5 | Number of similar documents to retrieve |
+| `SIMILARITY_THRESHOLD` | float | 0.7 | Minimum similarity score for results |
+| `ENABLE_RERANKING` | bool | false | Enable semantic reranking of results |
+| `RETRIEVAL_CONTEXT_WINDOW` | int | 0 | Context window for adjacent chunks |
+
+#### Chunking Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CHUNK_SIZE` | int | 512 | Target chunk size in tokens |
+| `CHUNK_OVERLAP` | int | 50 | Overlap between chunks in tokens |
+| `USE_SEMANTIC_CHUNKING` | bool | true | Enable semantic-aware chunking |
+| `MIN_CHUNK_SIZE` | int | 50 | Minimum chunk size in tokens |
+| `MAX_CHUNK_SIZE` | int | 2048 | Maximum chunk size in tokens |
+
+#### Logging Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `LOG_LEVEL` | string | "INFO" | Logging level: DEBUG, INFO, WARNING, ERROR |
+| `LOG_FILE` | string | None | Path to log file (optional) |
+| `ENABLE_JSON_LOGS` | bool | false | Output logs in JSON format |
+| `ENABLE_FILE_LOGGING` | bool | true | Enable logging to file |
+
+#### Performance Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ENABLE_CACHING` | bool | true | Enable response caching |
+| `CACHE_TTL` | int | 3600 | Cache time-to-live in seconds |
+| `MAX_CACHE_SIZE` | int | 1000 | Maximum cache entries |
+| `BATCH_SIZE` | int | 100 | Default batch size for processing |
+
+#### Development Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `DEBUG` | bool | false | Enable debug mode |
+| `VERBOSE` | bool | false | Enable verbose output |
+| `ENABLE_PROFILING` | bool | false | Enable performance profiling |
+
 ### Usage Rights
 
 You are free to:

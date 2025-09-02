@@ -7,7 +7,7 @@ Provides caching and batch processing capabilities for efficient operation.
 """
 
 import logging
-from typing import List, Union, Optional
+from typing import List, Optional
 import numpy as np
 
 try:
@@ -27,15 +27,7 @@ class EmbeddingGenerator:
         """
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
-        
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-        
-        self.logger.info(f"Initialized embedding generator with model: {model_name}")
+        logging.info(f"Initialized embedding generator with model: {model_name}")
 
     def encode_single(self, text: str) -> np.ndarray:
         """Generate embedding for a single text.
@@ -50,7 +42,7 @@ class EmbeddingGenerator:
             raise ValueError("Cannot encode empty text")
             
         embedding = self.model.encode(text)
-        return embedding
+        return embedding  # type: ignore
 
     def encode_batch(self, texts: List[str], batch_size: Optional[int] = None) -> List[List[float]]:
         """Generate embeddings for a batch of texts.
@@ -98,7 +90,7 @@ class EmbeddingGenerator:
             result[i] = embedding
             
         # Filter out None values and return valid embeddings
-        return [emb for emb in result if emb is not None]
+        return [emb for emb in result if emb is not None]  # type: ignore
 
     def get_embedding_dimension(self) -> int:
         """Get the dimensionality of embeddings produced by this model.
@@ -106,7 +98,7 @@ class EmbeddingGenerator:
         Returns:
             Embedding dimension size
         """
-        return self.model.get_sentence_embedding_dimension()
+        return self.model.get_sentence_embedding_dimension()  # type: ignore
 
     def get_model_info(self) -> dict:
         """Get information about the current model.

@@ -146,7 +146,8 @@ class TestDocumentProcessor:
         text = "Short text."
         metadata = {"title": "Short", "source_file": "/short.html"}
         
-        chunks = processor.chunk_text(text, metadata)
+        # Test with legacy chunker for consistent behavior
+        chunks = processor.chunk_text(text, metadata, use_semantic=False)
         
         assert len(chunks) == 1
         assert chunks[0]["text"] == text
@@ -166,7 +167,8 @@ class TestDocumentProcessor:
         text = "Word " * 100  # 500 characters, much larger than chunk size
         metadata = {"title": "Overlap Test", "source_file": "/test.html"}
         
-        chunks = processor_with_overlap.chunk_text(text, metadata)
+        # Test with legacy chunker for consistent behavior
+        chunks = processor_with_overlap.chunk_text(text, metadata, use_semantic=False)
         
         assert len(chunks) > 1
         # Check that chunks have proper metadata
@@ -233,7 +235,8 @@ class TestDocumentProcessor:
         text = "This is a longer text that should be split into many small chunks."
         metadata = {"title": "Small Chunks", "source_file": "/test.html"}
         
-        chunks = processor.chunk_text(text, metadata)
+        # Test with legacy chunker for consistent behavior
+        chunks = processor.chunk_text(text, metadata, use_semantic=False)
         
         assert len(chunks) > 3  # Should create multiple small chunks
         for chunk in chunks:
@@ -246,7 +249,8 @@ class TestDocumentProcessor:
         text = "This is some test text. " * 20
         metadata = {"title": "No Overlap", "source_file": "/test.html"}
         
-        chunks = processor.chunk_text(text, metadata)
+        # Test with legacy chunker for consistent behavior
+        chunks = processor.chunk_text(text, metadata, use_semantic=False)
         
         assert len(chunks) > 1
         # Verify no overlap in text content

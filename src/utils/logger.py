@@ -4,7 +4,7 @@ Logging configuration for the Blender RAG Assistant.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Union, Any
 
 import structlog
 from colorlog import ColoredFormatter
@@ -53,7 +53,7 @@ def configure_logging(
     console_handler.setFormatter(console_formatter)
     console_handler.setLevel(log_level)
     
-    handlers = [console_handler]
+    handlers: List[logging.Handler] = [console_handler]
     
     # File handler if specified
     if log_file:
@@ -78,7 +78,7 @@ def configure_logging(
     root_logger.setLevel(log_level)
     
     # Configure structlog
-    processors = [
+    processors: List[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),

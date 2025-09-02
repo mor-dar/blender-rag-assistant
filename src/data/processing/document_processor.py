@@ -18,6 +18,7 @@ except ImportError as e:
     raise ImportError(f"Missing required package: {e}")
 
 from .text_cleaner import TextCleaner
+from .semantic_chunker import SemanticChunker
 
 
 class DocumentProcessor:
@@ -32,6 +33,7 @@ class DocumentProcessor:
         self.config = config
         self.tokenizer = tiktoken.get_encoding("cl100k_base")  # GPT-4 tokenizer
         self.text_cleaner = TextCleaner()
+        self.semantic_chunker = SemanticChunker(config)
         
         # Setup logging
         logging.basicConfig(
@@ -236,8 +238,27 @@ class DocumentProcessor:
         # This is a simplified conversion - in practice you'd want to map back to original URLs
         return f"https://docs.blender.org/manual/en/latest/{file_path.name}"
 
-    def chunk_text(self, text: str, metadata: Dict) -> List[Dict]:
-        """Split text into overlapping chunks.
+    def chunk_text(self, text: str, metadata: Dict, use_semantic: bool = True) -> List[Dict]:
+        """Split text into chunks using either semantic or legacy strategy.
+        
+        Args:
+            text: Text to chunk
+            metadata: Metadata to attach to each chunk
+            use_semantic: If True, use semantic chunking; otherwise use legacy token-based
+            
+        Returns:
+            List of chunk dictionaries with text and metadata
+        """
+        if not text.strip():
+            return []
+        
+        if use_semantic:
+            return self.semantic_chunker.chunk_text_semantically(text, metadata)
+        else:
+            return self._chunk_text_legacy(text, metadata)
+    
+    def _chunk_text_legacy(self, text: str, metadata: Dict) -> List[Dict]:
+        """Legacy token-based chunking (for backward compatibility).
         
         Args:
             text: Text to chunk
@@ -270,7 +291,8 @@ class DocumentProcessor:
                 "token_count": len(chunk_tokens),
                 "chunk_index": chunk_id,
                 "start_token": start,
-                "end_token": end
+                "end_token": end,
+                "chunking_strategy": "legacy"
             })
             
             chunks.append({
@@ -306,7 +328,9 @@ class DocumentProcessor:
                 text, metadata = self.extract_text_from_html(html_content, html_file)
                 
                 if text:
-                    chunks = self.chunk_text(text, metadata)
+                    # Use semantic chunking if enabled in config
+                    use_semantic = self.config.get("use_semantic_chunking", False)
+                    chunks = self.chunk_text(text, metadata, use_semantic=use_semantic)
                     all_chunks.extend(chunks)
                     
                     if i % 50 == 0:

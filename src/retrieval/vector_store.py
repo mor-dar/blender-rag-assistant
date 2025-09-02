@@ -10,9 +10,10 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 try:
+    from utils.config import CHROMA_COLLECTION_NAME
     import chromadb
     from chromadb.config import Settings
 except ImportError as e:
@@ -37,16 +38,9 @@ class VectorStore:
             settings=Settings(anonymized_telemetry=False)
         )
         
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-        
-        self.logger.info(f"Initialized vector store at: {self.db_path}")
+        logging.info(f"Initialized vector store at: {self.db_path}")
 
-    def create_collection(self, name: str, metadata: Optional[Dict] = None, replace: bool = True) -> Any:
+    def create_collection(self, name: str = CHROMA_COLLECTION_NAME, metadata: Optional[Dict] = None, replace: bool = True) -> Any:
         """Create a new collection.
         
         Args:
@@ -60,7 +54,7 @@ class VectorStore:
         if replace:
             try:
                 self.client.delete_collection(name)
-                self.logger.info(f"Deleted existing collection: {name}")
+                logging.info(f"Deleted existing collection: {name}")
             except Exception:
                 pass  # Collection doesn't exist
         
@@ -74,10 +68,10 @@ class VectorStore:
             metadata=collection_metadata
         )
         
-        self.logger.info(f"Created collection: {name}")
+        logging.info(f"Created collection: {name}")
         return collection
 
-    def get_collection(self, name: str) -> Optional[Any]:
+    def get_collection(self, name: str = CHROMA_COLLECTION_NAME) -> Optional[Any]:
         """Get an existing collection.
         
         Args:
@@ -89,10 +83,10 @@ class VectorStore:
         try:
             return self.client.get_collection(name)
         except Exception as e:
-            self.logger.warning(f"Collection '{name}' not found: {e}")
+            logging.warning(f"Collection '{name}' not found: {e}")
             return None
 
-    def delete_collection(self, name: str) -> bool:
+    def delete_collection(self, name: str = CHROMA_COLLECTION_NAME) -> bool:
         """Delete a collection.
         
         Args:
@@ -103,10 +97,10 @@ class VectorStore:
         """
         try:
             self.client.delete_collection(name)
-            self.logger.info(f"Deleted collection: {name}")
+            logging.info(f"Deleted collection: {name}")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to delete collection '{name}': {e}")
+            logging.error(f"Failed to delete collection '{name}': {e}")
             return False
 
     def list_collections(self) -> List[str]:
@@ -119,10 +113,10 @@ class VectorStore:
             collections = self.client.list_collections()
             return [col.name for col in collections]
         except Exception as e:
-            self.logger.error(f"Failed to list collections: {e}")
+            logging.error(f"Failed to list collections: {e}")
             return []
 
-    def get_collection_info(self, name: str) -> Dict:
+    def get_collection_info(self, name: str = CHROMA_COLLECTION_NAME) -> Dict:
         """Get information about a collection.
         
         Args:
@@ -162,7 +156,7 @@ class VectorStore:
         try:
             collection = self.get_collection(collection_name)
             if collection is None:
-                self.logger.error(f"Collection '{collection_name}' not found")
+                logging.error(f"Collection '{collection_name}' not found")
                 return False
             
             collection.add(
@@ -172,11 +166,11 @@ class VectorStore:
                 ids=ids
             )
             
-            self.logger.debug(f"Added {len(documents)} documents to collection '{collection_name}'")
+            logging.debug(f"Added {len(documents)} documents to collection '{collection_name}'")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to add documents to collection '{collection_name}': {e}")
+            logging.error(f"Failed to add documents to collection '{collection_name}': {e}")
             return False
 
     def query_collection(self, 
@@ -200,7 +194,7 @@ class VectorStore:
         try:
             collection = self.get_collection(collection_name)
             if collection is None:
-                self.logger.error(f"Collection '{collection_name}' not found")
+                logging.error(f"Collection '{collection_name}' not found")
                 return None
             
             # Set default include fields if not specified
@@ -217,7 +211,7 @@ class VectorStore:
             return results
             
         except Exception as e:
-            self.logger.error(f"Failed to query collection '{collection_name}': {e}")
+            logging.error(f"Failed to query collection '{collection_name}': {e}")
             return None
 
     def update_documents(self, 
@@ -241,7 +235,7 @@ class VectorStore:
         try:
             collection = self.get_collection(collection_name)
             if collection is None:
-                self.logger.error(f"Collection '{collection_name}' not found")
+                logging.error(f"Collection '{collection_name}' not found")
                 return False
             
             collection.update(
@@ -251,11 +245,11 @@ class VectorStore:
                 metadatas=metadatas
             )
             
-            self.logger.debug(f"Updated {len(ids)} documents in collection '{collection_name}'")
+            logging.debug(f"Updated {len(ids)} documents in collection '{collection_name}'")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to update documents in collection '{collection_name}': {e}")
+            logging.error(f"Failed to update documents in collection '{collection_name}': {e}")
             return False
 
     def delete_documents(self, collection_name: str, ids: List[str]) -> bool:
@@ -271,16 +265,16 @@ class VectorStore:
         try:
             collection = self.get_collection(collection_name)
             if collection is None:
-                self.logger.error(f"Collection '{collection_name}' not found")
+                logging.error(f"Collection '{collection_name}' not found")
                 return False
             
             collection.delete(ids=ids)
             
-            self.logger.debug(f"Deleted {len(ids)} documents from collection '{collection_name}'")
+            logging.debug(f"Deleted {len(ids)} documents from collection '{collection_name}'")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to delete documents from collection '{collection_name}': {e}")
+            logging.error(f"Failed to delete documents from collection '{collection_name}': {e}")
             return False
 
     def save_build_metadata(self, collection_name: str, metadata: Dict) -> bool:
@@ -298,14 +292,14 @@ class VectorStore:
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
             
-            self.logger.info(f"Saved build metadata for collection '{collection_name}'")
+            logging.info(f"Saved build metadata for collection '{collection_name}'")
             return True
             
         except Exception as e:
-            self.logger.error(f"Failed to save build metadata for collection '{collection_name}': {e}")
+            logging.error(f"Failed to save build metadata for collection '{collection_name}': {e}")
             return False
 
-    def load_build_metadata(self, collection_name: str) -> Optional[Dict]:
+    def load_build_metadata(self, collection_name: str = CHROMA_COLLECTION_NAME) -> Optional[Dict]:
         """Load build metadata from a JSON file.
         
         Args:
@@ -325,7 +319,7 @@ class VectorStore:
             return metadata
             
         except Exception as e:
-            self.logger.error(f"Failed to load build metadata for collection '{collection_name}': {e}")
+            logging.error(f"Failed to load build metadata for collection '{collection_name}': {e}")
             return None
 
     def get_database_info(self) -> Dict:
@@ -343,6 +337,6 @@ class VectorStore:
         
         for collection_name in collections:
             collection_info = self.get_collection_info(collection_name)
-            info["collections"][collection_name] = collection_info
+            info["collections"][collection_name] = collection_info  # type: ignore
         
         return info
