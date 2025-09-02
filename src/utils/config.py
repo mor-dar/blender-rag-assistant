@@ -211,7 +211,7 @@ def validate_config(strict: bool = False) -> None:
         errors.append("SIMILARITY_THRESHOLD must be between 0.0 and 1.0")
     
     if errors:
-        raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"- {error}" for error in errors))
+        raise ValueError("Configuration validation failed:\n" + "\n".join(f"- {error}" for error in errors))
 
 
 def print_config_summary() -> None:
