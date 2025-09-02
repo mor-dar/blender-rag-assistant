@@ -12,22 +12,25 @@ import numpy as np
 
 try:
     from sentence_transformers import SentenceTransformer
+    from utils.config import EMBEDDING_MODEL, EMBEDDING_BATCH_SIZE, EMBEDDING_DEVICE
 except ImportError as e:
     raise ImportError(f"Missing required package: {e}")
 
 
 class EmbeddingGenerator:
     """Generates embeddings for text using sentence-transformers models."""
-    
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+
+    def __init__(self, model_name: str = EMBEDDING_MODEL, device: str = EMBEDDING_DEVICE):
         """Initialize the embedding generator.
         
         Args:
             model_name: Name of the sentence-transformers model to use
+            device: Device to run the model on ('cpu', 'cuda', etc.)
         """
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
-        logging.info(f"Initialized embedding generator with model: {model_name}")
+        self.device = device
+        self.model = SentenceTransformer(model_name, device=device)
+        logging.info(f"Initialized embedding generator with model: {model_name} on device: {device}")
 
     def encode_single(self, text: str) -> np.ndarray:
         """Generate embedding for a single text.
@@ -49,7 +52,7 @@ class EmbeddingGenerator:
         
         Args:
             texts: List of texts to encode
-            batch_size: Optional batch size for processing (uses model default if None)
+            batch_size: Optional batch size for processing (uses config default if None)
             
         Returns:
             List of embedding vectors as lists of floats
@@ -69,17 +72,12 @@ class EmbeddingGenerator:
             raise ValueError("Cannot encode batch with all empty texts")
         
         # Generate embeddings for valid texts
-        if batch_size is not None:
-            embeddings = self.model.encode(
-                valid_texts, 
-                batch_size=batch_size,
-                show_progress_bar=len(valid_texts) > 100
-            )
-        else:
-            embeddings = self.model.encode(
-                valid_texts,
-                show_progress_bar=len(valid_texts) > 100
-            )
+        effective_batch_size = batch_size if batch_size is not None else EMBEDDING_BATCH_SIZE
+        embeddings = self.model.encode(
+            valid_texts, 
+            batch_size=effective_batch_size,
+            show_progress_bar=len(valid_texts) > 100
+        )
         
         # Convert to list of lists for ChromaDB compatibility
         embeddings_list = embeddings.tolist()

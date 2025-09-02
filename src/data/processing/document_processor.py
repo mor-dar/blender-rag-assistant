@@ -20,6 +20,12 @@ except ImportError as e:
 from .text_cleaner import TextCleaner
 from .semantic_chunker import SemanticChunker
 
+# Import config for tokenizer encoding
+try:
+    from utils.config import TOKENIZER_ENCODING
+except ImportError:
+    TOKENIZER_ENCODING = 'cl100k_base'  # fallback
+
 
 class DocumentProcessor:
     """Processes HTML documents into chunks suitable for vector storage."""
@@ -31,7 +37,7 @@ class DocumentProcessor:
             config: Configuration dictionary with chunk_size, etc.
         """
         self.config = config
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")  # GPT-4 tokenizer
+        self.tokenizer = tiktoken.get_encoding(TOKENIZER_ENCODING)
         self.text_cleaner = TextCleaner()
         self.semantic_chunker = SemanticChunker(config)
         

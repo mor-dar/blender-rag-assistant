@@ -29,8 +29,8 @@ class TestEmbeddingGenerator:
     def test_initialization_success(self, embedding_generator):
         """Test successful initialization."""
         assert embedding_generator.model_name == "all-MiniLM-L6-v2"
+        assert embedding_generator.device == "cpu"  # Default device from config
         assert embedding_generator.model is not None
-        assert embedding_generator.logger is not None
 
     @patch('retrieval.embeddings.SentenceTransformer')
     def test_initialization_with_custom_model(self, mock_transformer):
@@ -42,7 +42,7 @@ class TestEmbeddingGenerator:
         
         assert generator.model_name == "custom-model"
         assert generator.model == mock_model
-        mock_transformer.assert_called_once_with("custom-model")
+        mock_transformer.assert_called_once_with("custom-model", device="cpu")
 
     # SINGLE ENCODING TESTS
 

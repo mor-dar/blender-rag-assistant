@@ -105,6 +105,7 @@ CHUNK_OVERLAP = get_env_int('CHUNK_OVERLAP', 50)
 USE_SEMANTIC_CHUNKING = get_env_bool('USE_SEMANTIC_CHUNKING', True)
 MIN_CHUNK_SIZE = get_env_int('MIN_CHUNK_SIZE', 50)
 MAX_CHUNK_SIZE = get_env_int('MAX_CHUNK_SIZE', 2048)
+TOKENIZER_ENCODING = read_env_variable('TOKENIZER_ENCODING', 'cl100k_base')
 
 # === Logging Configuration ===
 LOG_LEVEL = read_env_variable('LOG_LEVEL', 'INFO').upper()

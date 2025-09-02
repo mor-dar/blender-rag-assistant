@@ -55,7 +55,6 @@ class TestVectorStore:
         
         assert vector_store.db_path == temp_db_path
         assert vector_store.client is not None
-        assert vector_store.logger is not None
         assert temp_db_path.exists()
 
     def test_initialization_creates_directory(self):

@@ -23,6 +23,16 @@ except ImportError as e:
     spacy = None  # type: ignore
     English = None  # type: ignore
 
+# Import config for tokenizer encoding and chunk sizes
+try:
+    from utils.config import TOKENIZER_ENCODING, CHUNK_SIZE, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE, CHUNK_OVERLAP
+except ImportError:
+    TOKENIZER_ENCODING = 'cl100k_base'  # fallback
+    CHUNK_SIZE = 512
+    MIN_CHUNK_SIZE = 50
+    MAX_CHUNK_SIZE = 2048
+    CHUNK_OVERLAP = 50
+
 
 class ContentType(Enum):
     """Content type classifications for adaptive chunking."""
@@ -59,7 +69,7 @@ class SemanticChunker:
         
         # Initialize tokenizer
         if tiktoken:
-            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+            self.tokenizer = tiktoken.get_encoding(TOKENIZER_ENCODING)
         else:
             # Fallback to simple word-based approximation
             self.tokenizer = None  # type: ignore
@@ -67,57 +77,61 @@ class SemanticChunker:
         # Initialize NLP pipeline for sentence detection
         self.nlp = self._init_nlp_pipeline()
         
-        # Configure chunking strategies by content type
+        # Configure chunking strategies by content type using config values as base
+        default_max = CHUNK_SIZE
+        default_min = MIN_CHUNK_SIZE
+        default_overlap = CHUNK_OVERLAP
+        
         self.chunk_configs = {
             ContentType.PROCEDURAL: ChunkConfig(
-                max_tokens=768,         # Longer for step sequences
-                min_tokens=256,         # Allow shorter steps
-                overlap_tokens=100,     # More overlap to preserve context
+                max_tokens=min(768, MAX_CHUNK_SIZE),         # Longer for step sequences
+                min_tokens=max(256, default_min),            # Allow shorter steps
+                overlap_tokens=max(100, default_overlap),    # More overlap to preserve context
                 preserve_headings=True,
                 preserve_sentences=True,
                 preserve_lists=True,
                 preserve_code_blocks=True
             ),
             ContentType.REFERENCE: ChunkConfig(
-                max_tokens=512,         # Standard size for properties/tools
-                min_tokens=128,         # Can be quite short
-                overlap_tokens=50,      # Less overlap needed
+                max_tokens=default_max,                      # Standard size for properties/tools
+                min_tokens=max(128, default_min),            # Can be quite short
+                overlap_tokens=default_overlap,              # Standard overlap
                 preserve_headings=True,
                 preserve_sentences=True,
                 preserve_lists=True,
                 preserve_code_blocks=True
             ),
             ContentType.CONCEPTUAL: ChunkConfig(
-                max_tokens=1024,        # Longer for concepts
-                min_tokens=256,         # Need substantial content
-                overlap_tokens=100,     # Good overlap for context
+                max_tokens=min(1024, MAX_CHUNK_SIZE),        # Longer for concepts
+                min_tokens=max(256, default_min),            # Need substantial content
+                overlap_tokens=max(100, default_overlap),    # Good overlap for context
                 preserve_headings=True,
                 preserve_sentences=True,
-                preserve_lists=False,   # Less critical
+                preserve_lists=False,                        # Less critical
                 preserve_code_blocks=True
             ),
             ContentType.CODE: ChunkConfig(
-                max_tokens=512,         # Code can be dense
-                min_tokens=64,          # Small code snippets OK
-                overlap_tokens=25,      # Minimal overlap
+                max_tokens=default_max,                      # Code can be dense
+                min_tokens=max(64, default_min),             # Small code snippets OK
+                overlap_tokens=max(25, default_overlap),     # Minimal overlap
                 preserve_headings=True,
-                preserve_sentences=False,  # Code has different structure
+                preserve_sentences=False,                    # Code has different structure
                 preserve_lists=False,
-                preserve_code_blocks=True  # Critical!
+                preserve_code_blocks=True                    # Critical!
             ),
             ContentType.STRUCTURED: ChunkConfig(
-                max_tokens=640,         # Medium size for lists/tables
-                min_tokens=128,
-                overlap_tokens=50,
+                max_tokens=min(640, MAX_CHUNK_SIZE),         # Medium size for lists/tables
+                min_tokens=max(128, default_min),
+                overlap_tokens=default_overlap,
                 preserve_headings=True,
                 preserve_sentences=True,
-                preserve_lists=True,    # Critical!
+                preserve_lists=True,                         # Critical!
                 preserve_code_blocks=True
             ),
             ContentType.GENERAL: ChunkConfig(
-                max_tokens=512,         # Default from base config
-                min_tokens=128,
-                overlap_tokens=50,
+                max_tokens=default_max,                      # Default from base config
+                min_tokens=default_min,
+                overlap_tokens=default_overlap,
                 preserve_headings=True,
                 preserve_sentences=True,
                 preserve_lists=True,

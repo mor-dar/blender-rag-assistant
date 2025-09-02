@@ -12,7 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from utils.config import CHROMA_COLLECTION_NAME, CHROMA_PERSIST_DIRECTORY, EMBEDDING_MODEL, RETRIEVAL_K  # type: ignore[import-not-found]
+from utils.config import (  # type: ignore[import-not-found]
+    CHROMA_COLLECTION_NAME,
+    CHROMA_PERSIST_DIRECTORY,
+    EMBEDDING_MODEL,
+    RETRIEVAL_K,
+)
 
 from .embeddings import EmbeddingGenerator  # type: ignore[import-untyped]
 from .vector_store import VectorStore  # type: ignore[import-untyped]
@@ -47,16 +52,9 @@ class SemanticRetriever:
         self.embedding_generator = EmbeddingGenerator(embedding_model)
         self.vector_store = VectorStore(db_path)
         
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-        
         # Validate collection exists
         if not self._validate_collection():
-            self.logger.warning(f"Default collection '{collection_name}' not found")
+            logging.warning(f"Default collection '{collection_name}' not found")
 
     def _validate_collection(self) -> bool:
         """Validate that the default collection exists."""
@@ -122,11 +120,11 @@ class SemanticRetriever:
                         score=score
                     ))
             
-            self.logger.debug(f"Retrieved {len(retrieval_results)} results for query")
+            logging.debug(f"Retrieved {len(retrieval_results)} results for query")
             return retrieval_results
             
         except Exception as e:
-            self.logger.error(f"Retrieval failed: {e}")
+            logging.error(f"Retrieval failed: {e}")
             return []
 
     def retrieve_with_context(self,
@@ -203,7 +201,7 @@ class SemanticRetriever:
             return retrieval_results
             
         except Exception as e:
-            self.logger.error(f"Metadata search failed: {e}")
+            logging.error(f"Metadata search failed: {e}")
             return []
 
     def get_similar_documents(self,
@@ -264,10 +262,10 @@ class SemanticRetriever:
         """
         if collection_name in self.vector_store.list_collections():
             self.collection_name = collection_name
-            self.logger.info(f"Set default collection to: {collection_name}")
+            logging.info(f"Set default collection to: {collection_name}")
             return True
         else:
-            self.logger.warning(f"Collection '{collection_name}' not found")
+            logging.warning(f"Collection '{collection_name}' not found")
             return False
 
     def health_check(self) -> Dict[str, Any]:

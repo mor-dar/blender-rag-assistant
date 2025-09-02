@@ -101,7 +101,7 @@ class TestSemanticRetriever:
         """Test initialization with default parameters."""
         retriever = SemanticRetriever(temp_db_path)
         
-        assert retriever.collection_name == "blender_docs_demo"
+        assert retriever.collection_name == "blender_docs"  # Uses config default
 
     def test_validation_collection_exists(self, retriever, mock_components):
         """Test collection validation when collection exists."""
