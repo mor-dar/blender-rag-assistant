@@ -65,7 +65,7 @@ class BlenderAssistantRAG:
             return "LLM not available. Please check API key configuration."
         
         # Retrieve relevant context from vector database
-        context = self.retriever.retrieve_context(query)
+        context = self.retriever.retrieve(query)
         
         # Generate response using LLM with retrieved context
         response = self.llm.invoke(question=query, context=context)
