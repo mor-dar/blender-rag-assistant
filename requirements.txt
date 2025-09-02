@@ -3,6 +3,7 @@
 langchain~=0.3.27
 langchain-community~=0.3.29
 langchain-groq~=0.3.7
+langchain-openai~=0.3.32
 langchain-huggingface~=0.3.1
 
 # Vector database and embeddings
