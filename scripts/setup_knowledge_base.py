@@ -12,7 +12,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -32,6 +32,14 @@ except ImportError as e:
     logging.error("Install with: pip install -r requirements.txt")
     sys.exit(1)
 
+# Demo mode specific documents (relative to HTML base directory)
+DEMO_DOCUMENTS = [
+    "modeling/meshes/introduction.html",
+    "modeling/meshes/structure.html",
+    "modeling/meshes/primitives.html", 
+    "modeling/meshes/import_images_as_planes.html"
+]
+
 # Tier configurations
 def get_tier_configs(base_collection_name: str) -> Dict[str, Dict[str, str]]:
     return {
@@ -44,6 +52,59 @@ def get_tier_configs(base_collection_name: str) -> Dict[str, Dict[str, str]]:
             "description": "Complete Blender documentation dataset"
         }
     }
+
+def find_demo_documents(raw_dir: Path) -> List[Path]:
+    """Find demo documents in the raw directory structure."""
+    demo_files = []
+    
+    # Look for HTML manual directories (new flattened structure)
+    html_dirs = list(raw_dir.glob("**/blender_manual_html"))
+    if not html_dirs:
+        # Fallback to old nested structure or direct structure
+        html_dirs = list(raw_dir.glob("**/blender_manual_*html*"))
+        if not html_dirs:
+            html_dirs = [raw_dir]
+    
+    for html_dir in html_dirs:
+        for doc_path in DEMO_DOCUMENTS:
+            full_path = html_dir / doc_path
+            if full_path.exists():
+                demo_files.append(full_path)
+                logging.info(f"Found demo document: {full_path}")
+            else:
+                # Try old nested structure for backward compatibility
+                nested_path = html_dir / "blender_manual_v450_en.html" / doc_path
+                if nested_path.exists():
+                    demo_files.append(nested_path)
+                    logging.info(f"Found demo document: {nested_path}")
+                else:
+                    logging.warning(f"Demo document not found: {doc_path}")
+    
+    return demo_files
+
+def create_filtered_raw_dir(raw_dir: Path, demo_files: List[Path], temp_dir: Path) -> Path:
+    """Create a temporary directory with only demo files maintaining structure."""
+    import shutil
+    
+    # Clear and create temp directory
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+    temp_dir.mkdir(parents=True)
+    
+    for demo_file in demo_files:
+        # Calculate relative path from original raw_dir
+        try:
+            rel_path = demo_file.relative_to(raw_dir)
+        except ValueError:
+            # Handle nested structure case
+            rel_path = Path(*demo_file.parts[-len(Path(DEMO_DOCUMENTS[0]).parts):])
+        
+        dest_file = temp_dir / rel_path
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(demo_file, dest_file)
+        logging.info(f"Copied {demo_file} -> {dest_file}")
+    
+    return temp_dir
 
 
 def main() -> None:
@@ -99,20 +160,48 @@ def main() -> None:
         "description": tier_config["description"]
     }
     
+    # Prepare raw directory based on tier
+    if args.tier == "demo":
+        logging.info("Demo mode: filtering to specific documents")
+        demo_files = find_demo_documents(args.raw_dir)
+        if not demo_files:
+            logging.error("No demo documents found. Check if HTML manual is properly downloaded.")
+            sys.exit(1)
+        
+        # Create filtered temporary directory
+        temp_dir = args.db_path.parent / "temp_demo_docs"
+        filtered_raw_dir = create_filtered_raw_dir(args.raw_dir, demo_files, temp_dir)
+        logging.info(f"Created filtered directory with {len(demo_files)} demo documents")
+    else:
+        filtered_raw_dir = args.raw_dir
+        logging.info("Full mode: processing all documents")
+
     # Build vector database (use configured paths)
     builder = VectorDBBuilder(config, CHROMA_PERSIST_DIRECTORY)
     
     try:
-        metadata = builder.build_collection(collection_name, args.raw_dir, collection_metadata)
+        metadata = builder.build_collection(collection_name, filtered_raw_dir, collection_metadata)
         logging.info(f"Successfully built vector database for {args.tier} tier")
         logging.info(f"Added {metadata['chunks_added']} chunks to collection '{metadata['collection_name']}'")
         logging.info(f"Database saved to: {args.db_path}")
+        
+        # Clean up temp directory if created
+        if args.tier == "demo" and temp_dir.exists():
+            import shutil
+            shutil.rmtree(temp_dir)
+            logging.info("Cleaned up temporary demo directory")
         
     except KeyboardInterrupt:
         logging.info("\nBuild interrupted by user")
         sys.exit(1)
     except Exception as e:
         logging.error(f"Build failed: {e}")
+        # Clean up temp directory if created
+        if args.tier == "demo":
+            temp_dir = args.db_path.parent / "temp_demo_docs"
+            if temp_dir.exists():
+                import shutil
+                shutil.rmtree(temp_dir)
         sys.exit(1)
 
 if __name__ == "__main__":

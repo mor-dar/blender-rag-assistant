@@ -2,8 +2,8 @@
 """
 Blender Documentation Download Script
 
-Downloads Blender documentation in a reproducible, configurable way.
-Supports both demo and full dataset modes.
+Downloads Blender documentation in HTML or EPUB format.
+Supports both demo and full dataset modes, plus direct archive downloads.
 """
 
 import argparse
@@ -11,6 +11,7 @@ import json
 import logging
 import sys
 import time
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Set
@@ -22,6 +23,10 @@ BLENDER_DOCS_CONFIG = {
     "base_url": "https://docs.blender.org/manual/en/latest/",
     "version": "4.5",
     "last_scraped": datetime.now().strftime("%Y-%m-%d"),
+    "archive_urls": {
+        "html": "https://docs.blender.org/manual/en/latest/blender_manual_html.zip",
+        "epub": "https://docs.blender.org/manual/en/latest/blender_manual_epub.zip"
+    },
     "sections": {
         "demo": [
             "modeling/meshes/",
@@ -190,10 +195,78 @@ class BlenderDocsDownloader:
         
         return total_downloaded
 
+    def download_archive(self, format_type: str) -> bool:
+        """Download and extract HTML or EPUB archive"""
+        if format_type not in self.config["archive_urls"]:
+            self.logger.error(f"Unknown format: {format_type}. Available: {list(self.config['archive_urls'].keys())}")
+            return False
+        
+        url = self.config["archive_urls"][format_type]
+        archive_path = self.output_dir / f"blender_manual_{format_type}.zip"
+        
+        try:
+            self.logger.info(f"Downloading {format_type} archive from {url}")
+            response = self.session.get(url, timeout=60, stream=True)
+            response.raise_for_status()
+            
+            # Download with progress
+            with open(archive_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            self.logger.info(f"Archive downloaded to {archive_path}")
+            
+            # Extract archive with flattened structure
+            extract_dir = self.output_dir / f"blender_manual_{format_type}"
+            extract_dir.mkdir(exist_ok=True)
+            
+            self.logger.info(f"Extracting archive to {extract_dir}")
+            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                # Get list of all files in the archive
+                file_list = zip_ref.namelist()
+                
+                # Find the root directory in the archive (usually something like blender_manual_v450_en.html/)
+                root_dirs = set()
+                for file_path in file_list:
+                    if '/' in file_path:
+                        root_dir = file_path.split('/')[0]
+                        root_dirs.add(root_dir)
+                
+                # If there's a single root directory, we'll flatten by extracting its contents directly
+                if len(root_dirs) == 1:
+                    root_dir = list(root_dirs)[0]
+                    self.logger.info(f"Flattening archive structure, removing root directory: {root_dir}")
+                    
+                    for file_info in zip_ref.infolist():
+                        if file_info.filename.startswith(root_dir + '/') and not file_info.is_dir():
+                            # Remove the root directory from the path
+                            relative_path = file_info.filename[len(root_dir) + 1:]
+                            if relative_path:  # Skip empty paths
+                                target_path = extract_dir / relative_path
+                                target_path.parent.mkdir(parents=True, exist_ok=True)
+                                
+                                # Extract the file
+                                with zip_ref.open(file_info) as source:
+                                    with open(target_path, 'wb') as target:
+                                        target.write(source.read())
+                else:
+                    # Fallback to normal extraction if structure is unexpected
+                    zip_ref.extractall(extract_dir)
+            
+            # Clean up zip file
+            archive_path.unlink()
+            
+            self.logger.info(f"Successfully extracted {format_type} manual to {extract_dir}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to download/extract {format_type} archive: {e}")
+            return False
+
 def main():
     parser = argparse.ArgumentParser(description='Download Blender documentation')
-    parser.add_argument('--tier', choices=['demo', 'full'], default='demo',
-                        help='Which tier to download (default: demo)')
+    parser.add_argument('--format', choices=['html', 'epub'], default='html',
+                        help='Download format: html (archive) or epub (archive)')
     parser.add_argument('--output-dir', type=Path, 
                         default=Path(__file__).parent.parent / 'data' / 'raw',
                         help='Output directory for downloaded files')
@@ -212,18 +285,22 @@ def main():
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Download
+    # Download archive format
     downloader = BlenderDocsDownloader(config, args.output_dir)
     try:
-        total_count = downloader.download_tier(args.tier)
-        print(f"Successfully downloaded {total_count} pages for {args.tier} tier")
-        print(f"Files saved to: {args.output_dir}")
+        success = downloader.download_archive(args.format)
+        if success:
+            print(f"Successfully downloaded {args.format.upper()} manual")
+            print(f"Files saved to: {args.output_dir / f'blender_manual_{args.format}'}")
+        else:
+            print(f"Failed to download {args.format.upper()} manual")
+            sys.exit(1)
         
         # Save configuration used
-        config_path = args.output_dir / f"config_{args.tier}.json"
+        config_path = args.output_dir / f"config_{args.format}_archive.json"
         with open(config_path, 'w') as f:
             json.dump(config, f, indent=2)
-        print(f"📄 Configuration saved to: {config_path}")
+        print(f"Configuration saved to: {config_path}")
         
     except KeyboardInterrupt:
         print("\nDownload interrupted by user")

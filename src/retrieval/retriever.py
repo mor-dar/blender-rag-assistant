@@ -69,7 +69,7 @@ class SemanticRetriever:
                 k: int = RETRIEVAL_K,
                 collection_name: Optional[str] = None,
                 metadata_filter: Optional[Dict[str, Any]] = None,
-                min_score: float = 0.0) -> List[RetrievalResult]:
+                min_score: float = -0.5) -> List[RetrievalResult]:
         """Retrieve relevant documents for a query.
         
         Args:

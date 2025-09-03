@@ -209,6 +209,6 @@ __marimo__/
 # Local files
 .devcontainer
 *.sh
-data/raw
+data/raw*
 data/vector_db
 lectures

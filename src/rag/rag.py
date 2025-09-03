@@ -1,6 +1,8 @@
 import logging
+from typing import List
 from rag.prompts import blender_bot_template
 from retrieval import SemanticRetriever
+from retrieval.retriever import RetrievalResult
 from utils.config import (
     CHROMA_PERSIST_DIRECTORY,
     EMBEDDING_MODEL,
@@ -49,6 +51,38 @@ class BlenderAssistantRAG:
             logging.error(f"Failed to initialize LLM: {e}")
             self.llm = None
 
+    def _format_context(self, results: List[RetrievalResult]) -> str:
+        """
+        Format retrieval results into a structured string context for the LLM.
+        
+        Args:
+            results: List of RetrievalResult objects from semantic search
+            
+        Returns:
+            Formatted context string with sources and content
+        """
+        if not results:
+            return "No relevant documentation found for this query."
+        
+        context_parts = ["Retrieved Documentation Context:\n"]
+        
+        for i, result in enumerate(results, 1):
+            # Extract source info from metadata if available
+            source_info = "Unknown source"
+            if result.metadata:
+                if 'source' in result.metadata:
+                    source_info = result.metadata['source']
+                elif 'file_path' in result.metadata:
+                    source_info = result.metadata['file_path']
+            
+            # Format each result with source and score
+            context_parts.append(f"[Source {i} - Score: {result.score:.3f}]")
+            context_parts.append(f"From: {source_info}")
+            context_parts.append(f"Content: {result.text.strip()}")
+            context_parts.append("")  # Empty line for readability
+        
+        return "\n".join(context_parts)
+
     def handle_query(self, query: str) -> str:
         """
         Process a user query through the complete RAG pipeline.
@@ -65,9 +99,12 @@ class BlenderAssistantRAG:
             return "LLM not available. Please check API key configuration."
         
         # Retrieve relevant context from vector database
-        context = self.retriever.retrieve(query)
+        retrieval_results = self.retriever.retrieve(query)
         
-        # Generate response using LLM with retrieved context
-        response = self.llm.invoke(question=query, context=context)
+        # Format retrieval results into string context for LLM
+        formatted_context = self._format_context(retrieval_results)
+        
+        # Generate response using LLM with formatted context
+        response = self.llm.invoke(question=query, context=formatted_context)
         
         return response
