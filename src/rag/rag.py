@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional, Any
 from rag.prompts import blender_bot_template
 from retrieval import SemanticRetriever
 from retrieval.retriever import RetrievalResult
@@ -8,7 +8,10 @@ from utils.config import (
     EMBEDDING_MODEL,
     CHROMA_COLLECTION_NAME,
     GROQ_API_KEY,
-    OPENAI_API_KEY
+    OPENAI_API_KEY,
+    MEMORY_TYPE,
+    MEMORY_WINDOW_SIZE,
+    MEMORY_MAX_TOKEN_LIMIT
 )
 
 if GROQ_API_KEY is not None:
@@ -17,6 +20,9 @@ elif OPENAI_API_KEY is not None:
     from rag.llms.openai_llm import OpenAILLM as LLM
 else:
     logging.error("No API key found for Groq or OpenAI. Please set GROQ_API_KEY or OPENAI_API_KEY in environment.")
+
+# Import memory classes (always import, use conditionally)
+from langchain.memory import ConversationBufferWindowMemory, ConversationSummaryMemory
 
 
 class BlenderAssistantRAG:
@@ -29,7 +35,7 @@ class BlenderAssistantRAG:
 
     def __init__(self):
         """
-        Initialize the RAG system with retriever and language model.
+        Initialize the RAG system with retriever, language model, and optional memory.
         """
         # Initialize semantic retriever for document search
         self.retriever = SemanticRetriever(
@@ -47,6 +53,39 @@ class BlenderAssistantRAG:
         except Exception as e:
             logging.error(f"Failed to initialize LLM: {e}")
             self.llm = None
+            
+        # Initialize memory system based on configuration
+        self.memory: Optional[Any] = None
+        self._init_memory()
+        
+    def _init_memory(self) -> None:
+        """Initialize conversation memory based on MEMORY_TYPE configuration."""
+        if MEMORY_TYPE == 'window':
+            try:
+                self.memory = ConversationBufferWindowMemory(
+                    k=MEMORY_WINDOW_SIZE,
+                    return_messages=False  # Return as string for easier integration
+                )
+                logging.info(f"Initialized window memory (size: {MEMORY_WINDOW_SIZE})")
+            except Exception as e:
+                logging.error(f"Failed to initialize window memory: {e}")
+                
+        elif MEMORY_TYPE == 'summary':
+            if self.llm and hasattr(self.llm, 'model'):
+                try:
+                    self.memory = ConversationSummaryMemory(
+                        llm=self.llm.model,
+                        max_token_limit=MEMORY_MAX_TOKEN_LIMIT,
+                        return_messages=False  # Return as string for easier integration
+                    )
+                    logging.info(f"Initialized summary memory (max tokens: {MEMORY_MAX_TOKEN_LIMIT})")
+                except Exception as e:
+                    logging.error(f"Failed to initialize summary memory: {e}")
+            else:
+                logging.warning("Summary memory requires LLM, but LLM not available")
+                
+        else:
+            logging.info("No conversation memory enabled (MEMORY_TYPE=none)")
 
     def _format_context(self, results: List[RetrievalResult]) -> str:
         """
@@ -82,13 +121,13 @@ class BlenderAssistantRAG:
 
     def handle_query(self, query: str) -> str:
         """
-        Process a user query through the complete RAG pipeline.
+        Process a user query through the complete RAG pipeline with optional memory.
         
         Args:
             query: User's question about Blender
             
         Returns:
-            Generated response based on retrieved documentation context
+            Generated response based on retrieved documentation context and conversation history
         """
         # Check if LLM is available
         if not self.llm:
@@ -101,7 +140,67 @@ class BlenderAssistantRAG:
         # Format retrieval results into string context for LLM
         formatted_context = self._format_context(retrieval_results)
         
-        # Generate response using LLM with formatted context
-        response = self.llm.invoke(question=query, context=formatted_context)
+        # Add conversation history if memory is enabled
+        if self.memory:
+            try:
+                # Get conversation history
+                memory_vars = self.memory.load_memory_variables({})
+                conversation_history = memory_vars.get('history', '')
+                
+                # Combine context with conversation history
+                if conversation_history:
+                    full_context = f"{formatted_context}\n\nConversation History:\n{conversation_history}"
+                else:
+                    full_context = formatted_context
+                    
+                # Generate response using LLM with full context
+                response = self.llm.invoke(question=query, context=full_context)
+                
+                # Save the conversation to memory
+                self.memory.save_context({"input": query}, {"output": response})
+                
+            except Exception as e:
+                logging.error(f"Error using memory: {e}")
+                # Fallback to normal operation without memory
+                response = self.llm.invoke(question=query, context=formatted_context)
+        else:
+            # Generate response using LLM with formatted context (no memory)
+            response = self.llm.invoke(question=query, context=formatted_context)
         
         return response
+        
+    def clear_memory(self) -> None:
+        """Clear conversation memory if enabled."""
+        if self.memory:
+            try:
+                self.memory.clear()
+                logging.info("Conversation memory cleared")
+            except Exception as e:
+                logging.error(f"Error clearing memory: {e}")
+        else:
+            logging.info("No memory to clear")
+            
+    def get_memory_info(self) -> dict:
+        """Get information about the current memory configuration and state."""
+        info = {
+            "memory_type": MEMORY_TYPE,
+            "memory_enabled": self.memory is not None
+        }
+        
+        if self.memory:
+            try:
+                if MEMORY_TYPE == 'window':
+                    info.update({
+                        "window_size": MEMORY_WINDOW_SIZE,
+                        "current_messages": len(self.memory.chat_memory.messages) if hasattr(self.memory, 'chat_memory') else 0
+                    })
+                elif MEMORY_TYPE == 'summary':
+                    info.update({
+                        "max_token_limit": MEMORY_MAX_TOKEN_LIMIT,
+                        "has_summary": hasattr(self.memory, 'summary') and bool(getattr(self.memory, 'summary', None))
+                    })
+            except Exception as e:
+                logging.error(f"Error getting memory info: {e}")
+                info["error"] = str(e)
+                
+        return info

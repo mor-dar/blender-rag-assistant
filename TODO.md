@@ -121,15 +121,12 @@
 
 ## Phase 6: Memory & Conversation Management
 ### Memory Systems (`src/rag/memory/`)
-- [ ] Implement conversation buffer (`buffer_memory.py`)
-  - [ ] Full conversation retention
-  - [ ] Token-aware truncation
-- [ ] Create sliding window memory (`window_memory.py`)
-  - [ ] Recent message retention
-  - [ ] Configurable window size
-- [ ] Build summarization memory (`summary_memory.py`)
-  - [ ] Conversation compression
-  - [ ] Key point extraction
+- [x] Create sliding window memory (`window_memory.py`)
+  - [x] Recent message retention
+  - [x] Configurable window size
+- [x] Build summarization memory (`summary_memory.py`)
+  - [x] Conversation compression
+  - [x] Key point extraction
 
 ## Phase 7: Advanced Features
 ### Query Enhancement (`src/rag/query/`)

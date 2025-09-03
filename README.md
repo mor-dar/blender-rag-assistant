@@ -46,6 +46,11 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
    - LLM reasoning with retrieved knowledge
    - Structured response formatting with citations
 
+5. **Conversation Memory** (Optional)
+   - Window memory: Keep recent N messages for context
+   - Summary memory: Summarize old conversations to manage token usage
+   - Configurable via `MEMORY_TYPE` environment variable
+
 ### Key Technologies
 
 - **Language Models**: Groq Llama3-8B
@@ -144,6 +149,13 @@ The system is highly configurable through environment variables. Copy `.env.exam
 | `DEBUG` | bool | false | Enable debug mode |
 | `VERBOSE` | bool | false | Enable verbose output |
 | `ENABLE_PROFILING` | bool | false | Enable performance profiling |
+
+#### Memory Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `MEMORY_TYPE` | string | "none" | Conversation memory type: "none", "window", or "summary" |
+| `MEMORY_WINDOW_SIZE` | int | 6 | Number of recent messages to keep (window memory only) |
+| `MEMORY_MAX_TOKEN_LIMIT` | int | 1000 | Max tokens before summarization (summary memory only) |
 
 ## Evaluation Mode
 
