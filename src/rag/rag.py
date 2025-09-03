@@ -14,12 +14,18 @@ from utils.config import (
     MEMORY_MAX_TOKEN_LIMIT
 )
 
+class DummyLLM:
+    """Dummy LLM class for when no API keys are available."""
+    def invoke(self, **kwargs):
+        return "LLM not available. Please check API key configuration."
+
 if GROQ_API_KEY is not None:
     from rag.llms.groq_llm import GroqLLM as LLM
 elif OPENAI_API_KEY is not None:
     from rag.llms.openai_llm import OpenAILLM as LLM
 else:
     logging.error("No API key found for Groq or OpenAI. Please set GROQ_API_KEY or OPENAI_API_KEY in environment.")
+    LLM = DummyLLM
 
 # Import memory classes (always import, use conditionally)
 from langchain.memory import ConversationBufferWindowMemory, ConversationSummaryMemory
