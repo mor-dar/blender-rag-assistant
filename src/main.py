@@ -10,12 +10,15 @@ def main() -> None:
     initialize_logging()
     logging.info("Blender RAG Assistant started.")
     # Start with a simple query input for now
-    query = input("Enter your query: ")
-    logging.info(f"User query: {query}")
-    
-    rag = BlenderAssistantRAG(collection_type="demo")
-    response = rag.handle_query(query=query)
-    logging.info(f"RAG response: {response}")
-
+    while True:
+        query = input("Enter your query: ")
+        if query == "quit":
+            break
+        logging.info(f"User query: {query}")
+        
+        rag = BlenderAssistantRAG()
+        response = rag.handle_query(query=query)
+        logging.info(f"RAG response: {response}")
+    logging.info("Blender RAG Assistant stopped.")
 if __name__ == "__main__":
     main()

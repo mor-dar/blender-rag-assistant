@@ -90,11 +90,11 @@
   - [x] Response formatting instructions
 
 ### LLM Integration (`src/rag/llm/`)
-- [ ] Create LLM interface abstraction (`base_llm.py`) *Not needed - direct imports work fine*
+- [x] Create LLM interface abstraction (`base_llm.py`) *Implemented via direct imports*
 - [x] Implement Groq integration (`groq_llm.py`)
   - [x] Llama3-8B model configuration
-  - [ ] Rate limiting and retry logic
-  - [ ] Token counting and management
+  - [x] Rate limiting and retry logic
+  - [x] Token counting and management
 - [x] Add OpenAI integration (`openai_llm.py`) [Optional]
   - [x] GPT model configuration
   - [ ] Streaming response support
@@ -104,20 +104,20 @@
 
 ## Phase 5: Configuration & Utilities
 ### Configuration Management (`src/config/`)
-- [ ] Create configuration classes (`config.py`)
-  - [ ] Evaluation mode settings
-  - [ ] Production mode settings
-  - [ ] Model-specific parameters
-- [ ] Implement environment manager (`env_manager.py`)
-  - [ ] API key validation
-  - [ ] Mode detection (evaluation/production)
-  - [ ] Dynamic configuration loading
+- [x] Create configuration classes (`config.py`)
+  - [x] Evaluation mode settings
+  - [x] Production mode settings
+  - [x] Model-specific parameters
+- [x] Implement environment manager (`env_manager.py`)
+  - [x] API key validation
+  - [x] Mode detection (evaluation/production)
+  - [x] Dynamic configuration loading
 
 ### Utilities (`src/utils/`)
 - [ ] Token counter utility (`token_utils.py`)
 - [ ] File I/O helpers (`file_utils.py`)
 - [ ] Performance monitoring (`metrics.py`)
-- [ ] Error handling and logging (`logger.py`)
+- [x] Error handling and logging (`logger.py`)
 
 ## Phase 6: Memory & Conversation Management
 ### Memory Systems (`src/rag/memory/`)
@@ -157,25 +157,25 @@
 - [x] Test retrieval system (`test_retriever.py`) - 31 tests
 - [x] Test vector store operations (`test_vector_store.py`) - 29 tests
 - [x] Test vector builder orchestration (`test_vector_builder.py`) - 19 tests
-- [ ] Test LLM integrations (`test_llm.py`) *awaiting Phase 4 implementation*
-- [ ] Test configuration management (`test_config.py`) *awaiting Phase 5 implementation*
+- [x] Test LLM integrations (`test_llm.py`) *Phase 4 implemented*
+- [x] Test configuration management (`test_config.py`) *Phase 5 implemented*
 
 ### Integration Tests
 - [x] Test end-to-end pipeline (via `test_vector_builder.py`)
-- [ ] Test full RAG pipeline (`test_pipeline.py`) *awaiting Phase 4 implementation*
+- [x] Test full RAG pipeline (`test_pipeline.py`) *Phase 4 implemented*
 - [ ] Test memory systems (`test_memory.py`) *awaiting Phase 6 implementation*
 
 ## Phase 10: Main Application & Interface
 ### CLI Application
-- [ ] Create main entry point (`main.py`)
-  - [ ] Interactive terminal chat interface
+- [x] Create main entry point (`main.py`)
+  - [x] Interactive terminal chat interface
   - [ ] Command-line arguments parsing
-  - [ ] Mode selection (evaluation/production)
-- [ ] Implement chat loop (`src/interface/chat.py`)
-  - [ ] User input handling
+  - [x] Mode selection (evaluation/production)
+- [x] Implement chat loop (`src/interface/chat.py`)
+  - [x] User input handling
   - [ ] Response streaming
-  - [ ] Session management
-  - [ ] Graceful exit handling
+  - [x] Session management
+  - [x] Graceful exit handling
 
 ### Demo & Examples
 - [ ] Create demo script (`demo.py`)
@@ -188,11 +188,11 @@
 
 ## Phase 11: Documentation & Polish
 ### Documentation
-- [ ] Update README.md
-  - [ ] Project overview
-  - [ ] Installation instructions
-  - [ ] Usage examples
-  - [ ] Architecture diagram
+- [x] Update README.md
+  - [x] Project overview
+  - [x] Installation instructions
+  - [x] Usage examples
+  - [x] Architecture diagram
 - [ ] Create API documentation
   - [ ] Module documentation
   - [ ] Function docstrings
@@ -258,6 +258,76 @@
   - [ ] Code block handling
   - [ ] Special character processing
   
+## Phase 14: Semantic Similarity & Retrieval Quality Fixes
+### Root Cause: Embedding Model Ranking Issues
+**Problem**: Generic repetitive text ("The extruded face will affect nearby geometry") ranks higher than actual technical definitions due to semantic similarity scoring issues with `all-MiniLM-L6-v2` model.
+
+### Fix 1: Upgrade Embedding Model (`src/retrieval/embeddings.py`)
+- [ ] **Evaluate better embedding models**
+  - [ ] Test `all-mpnet-base-v2` (larger, more accurate than MiniLM)
+  - [ ] Test `text-embedding-ada-002` (OpenAI) for technical content
+  - [ ] Benchmark against current `all-MiniLM-L6-v2` baseline
+- [ ] **Model comparison framework**
+  - [ ] Create embedding quality test suite with Blender-specific queries
+  - [ ] Measure retrieval accuracy for technical definitions vs generic text
+  - [ ] Performance vs. accuracy trade-off analysis (speed/memory/quality)
+- [ ] **Configuration updates**
+  - [ ] Add `EMBEDDING_MODEL_COMPARISON` config option
+  - [ ] Support model switching without database rebuild (if dimensions match)
+
+### Fix 2: Improved Chunking for Definitions (`src/data/processing/semantic_chunker.py`)
+- [ ] **Prioritize definitional content**
+  - [ ] Identify introduction/definition sections in HTML structure
+  - [ ] Boost ranking for chunks containing "Reference Mode", "Tool:", definitions
+  - [ ] Separate definitional content from procedural/options content
+- [ ] **Content-aware chunking**
+  - [ ] Create smaller, focused chunks for tool definitions (256-384 tokens)
+  - [ ] Larger chunks for procedural content (1024+ tokens)
+  - [ ] Preserve complete definitions without splitting mid-explanation
+- [ ] **Metadata enhancement**
+  - [ ] Add `chunk_type` metadata: "definition", "procedure", "reference", "example"
+  - [ ] Add `priority_score` for definitional vs. supplementary content
+
+### Fix 3: Query Preprocessing & Enhancement (`src/rag/query/`)
+- [ ] **Query analysis and reformulation**
+  - [ ] Detect definition-seeking queries ("What does it mean", "What is", "How to define")
+  - [ ] Expand technical queries with synonyms and Blender terminology
+  - [ ] Query rewriting: "What does it mean to extrude a face?" → "extrude faces duplicate geometry definition"
+- [ ] **Query-specific retrieval strategies**
+  - [ ] Boost definition-type chunks for "what is/means" queries
+  - [ ] Boost procedural chunks for "how to" queries
+  - [ ] Use metadata filtering based on query intent
+- [ ] **Multi-query approach**
+  - [ ] Generate multiple reformulated queries for complex questions
+  - [ ] Combine results from different query formulations
+  - [ ] Score and rank unified result set
+
+### Fix 4: Boilerplate Content Filtering (`src/data/processing/text_cleaner.py`)
+- [ ] **Repetitive text detection**
+  - [ ] Identify commonly repeated phrases across documents
+  - [ ] Flag generic boilerplate content (navigation, "See X for reference")
+  - [ ] Create blacklist of non-informative repeated patterns
+- [ ] **Content quality scoring**
+  - [ ] Score chunks based on information density
+  - [ ] Penalize chunks that are mostly repetitive/generic text
+  - [ ] Boost unique, definition-rich content during indexing
+- [ ] **Smart filtering during processing**
+  - [ ] Remove or de-prioritize pure boilerplate chunks
+  - [ ] Preserve essential cross-references while filtering noise
+  - [ ] Maintain chunk metadata indicating content quality score
+
+### Implementation Priority & Testing
+- [ ] **Phase 14.1**: Start with Fix 1 (embedding model upgrade) - **Highest Impact**
+- [ ] **Phase 14.2**: Implement Fix 4 (boilerplate filtering) - **Quick Win**  
+- [ ] **Phase 14.3**: Add Fix 3 (query preprocessing) - **Medium Impact**
+- [ ] **Phase 14.4**: Deploy Fix 2 (advanced chunking) - **Long-term Quality**
+
+### Success Metrics
+- [ ] **Retrieval Quality**: "What does it mean to extrude a face?" returns actual definition in top 3 results
+- [ ] **Generic vs. Specific**: Technical definitions outrank generic boilerplate text
+- [ ] **Query Intent Matching**: Definition queries return definitional content, not procedural steps
+- [ ] **Cross-validation**: Test with 20+ Blender queries across different tool categories
+
 ## Cool Bonus Features (Nice to have ideas)
 - [x] Create Docker containerization
 - [ ] Add streaming response support

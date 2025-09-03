@@ -74,7 +74,7 @@ RAG_MODE = read_env_variable('RAG_MODE', 'evaluation')
 
 # Groq configuration (evaluation mode)
 GROQ_API_KEY = read_env_variable('GROQ_API_KEY')
-GROQ_MODEL = read_env_variable('GROQ_MODEL', 'llama3-8b-8192')
+GROQ_MODEL = read_env_variable('GROQ_MODEL', 'llama-3.1-8b-instant')
 GROQ_TEMPERATURE = get_env_float('GROQ_TEMPERATURE', 0.7)
 GROQ_MAX_TOKENS = get_env_int('GROQ_MAX_TOKENS', 2048)
 
@@ -89,7 +89,7 @@ CHROMA_PERSIST_DIRECTORY = Path(read_env_variable('CHROMA_PERSIST_DIRECTORY', '.
 CHROMA_COLLECTION_NAME = read_env_variable('CHROMA_COLLECTION_NAME', 'blender_docs')
 
 # === Embedding Configuration ===
-EMBEDDING_MODEL = read_env_variable('EMBEDDING_MODEL', 'all-MiniLM-L6-v2')
+EMBEDDING_MODEL = read_env_variable('EMBEDDING_MODEL', 'multi-qa-MiniLM-L6-cos-v1')
 EMBEDDING_DEVICE = read_env_variable('EMBEDDING_DEVICE', 'cpu')
 EMBEDDING_BATCH_SIZE = get_env_int('EMBEDDING_BATCH_SIZE', 32)
 

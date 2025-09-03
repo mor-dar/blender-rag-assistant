@@ -32,12 +32,13 @@ except ImportError as e:
     logging.error("Install with: pip install -r requirements.txt")
     sys.exit(1)
 
-# Demo mode specific documents (relative to HTML base directory)
+# Demo mode specific documents (Interface Controls - Buttons section)
 DEMO_DOCUMENTS = [
-    "modeling/meshes/introduction.html",
-    "modeling/meshes/structure.html",
-    "modeling/meshes/primitives.html", 
-    "modeling/meshes/import_images_as_planes.html"
+    "interface/controls/buttons/buttons.html",
+    "interface/controls/buttons/decorators.html",
+    "interface/controls/buttons/eyedropper.html", 
+    "interface/controls/buttons/fields.html",
+    "interface/controls/buttons/menus.html"
 ]
 
 # Tier configurations

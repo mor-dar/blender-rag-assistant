@@ -145,6 +145,34 @@ The system is highly configurable through environment variables. Copy `.env.exam
 | `VERBOSE` | bool | false | Enable verbose output |
 | `ENABLE_PROFILING` | bool | false | Enable performance profiling |
 
+## Evaluation Mode
+
+When running in evaluation mode (default configuration), try these example questions to test the RAG system's capabilities:
+
+### Suggested Evaluation Questions
+
+Based on the foundational concepts from the [Ready Tensor Agentic AI Developer Certification Program](https://app.readytensor.ai/publications/aaidc-module-1-project-foundations-of-agentic-ai-your-first-rag-assistant-4n07ViGCey0l) and related [publications](https://app.readytensor.ai/publications/WsaE5uxLBqnH), these questions test different aspects of the Blender documentation knowledge:
+
+1. **"How do I use the eyedropper tool to sample colors in Blender?"**
+   - Common workflow question about color sampling
+
+2. **"What are the different types of buttons in Blender's interface and what do they do?"**
+   - Basic UI understanding question
+
+3. **"How can I quickly enter exact values into number fields instead of dragging?"**
+   - Practical workflow efficiency question
+
+4. **"What do the small icons and decorators next to buttons mean?"**
+   - Interface comprehension question about visual indicators
+
+5. **"How do I access context menus and what options are usually available?"**
+   - Right-click menu and navigation question
+
+6. **"Can I customize or change the appearance of interface buttons and menus?"**
+   - Customization and preferences question
+
+These questions cover fundamental Blender interface concepts and demonstrate the RAG system's ability to retrieve and synthesize information from the documentation.
+
 ### Usage Rights
 
 You are free to:

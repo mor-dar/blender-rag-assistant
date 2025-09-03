@@ -27,18 +27,15 @@ class BlenderAssistantRAG:
     accurate answers to Blender-related questions using retrieved context.
     """
 
-    def __init__(self, collection_type: str = "demo"):
+    def __init__(self):
         """
         Initialize the RAG system with retriever and language model.
-        
-        Args:
-            collection_type: Collection name suffix ("demo" or "full")
         """
         # Initialize semantic retriever for document search
         self.retriever = SemanticRetriever(
             db_path=CHROMA_PERSIST_DIRECTORY,
             embedding_model=EMBEDDING_MODEL,
-            collection_name=f"{CHROMA_COLLECTION_NAME}_{collection_type}"
+            collection_name=CHROMA_COLLECTION_NAME
         )
 
         # Store prompt template for LLM formatting
