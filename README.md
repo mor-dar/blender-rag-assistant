@@ -80,7 +80,7 @@ This project was developed with assistance from **Anthropic's Claude AI**, which
 
 ## Configuration
 
-The system is highly configurable through environment variables. Copy `.env.example_full` to `.env` and customize as needed.
+The system is highly configurable through environment variables. Copy `.env.example` to `.env` and customize as needed.
 
 ### Environment Variables
 
@@ -156,6 +156,65 @@ The system is highly configurable through environment variables. Copy `.env.exam
 | `MEMORY_TYPE` | string | "none" | Conversation memory type: "none", "window", or "summary" |
 | `MEMORY_WINDOW_SIZE` | int | 6 | Number of recent messages to keep (window memory only) |
 | `MEMORY_MAX_TOKEN_LIMIT` | int | 1000 | Max tokens before summarization (summary memory only) |
+
+## Usage - Interface Options
+
+The Blender RAG Assistant provides two interaction modes to suit different preferences:
+
+### Command Line Interface (CLI)
+
+The default interface provides a simple terminal-based chat experience:
+
+```bash
+# Run CLI interface (default)
+python main.py
+
+# Or explicitly specify CLI
+python main.py --cli
+```
+
+**Features:**
+- Simple text-based interaction
+- Perfect for development and scripting
+- Lightweight with minimal dependencies
+- Suitable for server environments
+
+### Web Interface (Streamlit)
+
+A modern, user-friendly web interface with rich features:
+
+```bash
+# Launch web interface
+python main.py --web
+```
+
+**Features:**
+- Configuration sidebar with system status and environment info
+- Built-in sample questions for easy testing
+- Random question generator for exploration
+- Response time monitoring
+- System reinitialization without restart
+
+**Access:** Once launched, open your browser to `http://localhost:8501`
+
+### Interface Selection
+
+```bash
+# Show all available options
+python main.py --help
+
+# CLI interface (default)
+python main.py
+python main.py --cli
+
+# Web interface  
+python main.py --web
+
+# Check version
+python main.py --version
+```
+
+Both interfaces use the same underlying RAG system and provide identical functionality - choose the one that best fits your workflow!
 
 ## Evaluation Mode
 
