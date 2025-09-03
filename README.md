@@ -216,6 +216,177 @@ python main.py --version
 
 Both interfaces use the same underlying RAG system and provide identical functionality - choose the one that best fits your workflow!
 
+## Docker Deployment
+
+The Blender RAG Assistant provides a comprehensive Docker setup with custom commands for different deployment scenarios.
+
+### Quick Start
+
+#### Build the Docker Image
+
+```bash
+docker build -t blender-rag-assistant .
+```
+
+#### Available Commands
+
+The Docker image supports six custom commands for different deployment scenarios:
+
+**Evaluation Commands (Demo Database):**
+- `evaluate-web`: Download data, build demo DB, launch web interface
+- `evaluate-cli`: Download data, build demo DB, launch CLI interface
+
+**Setup Commands:**
+- `build-demo`: Download data and build demo database only
+- `build-full`: Download data and build full database only
+
+**Runtime Commands (Assume Database Exists):**
+- `run-web`: Launch web interface only
+- `run-cli`: Launch CLI interface only
+
+### Usage Examples
+
+#### 1. Quick Evaluation (Web Interface)
+Perfect for testing and evaluation - sets up demo database and launches web UI:
+
+```bash
+docker run -p 8501:8501 -v $(pwd)/data:/app/data blender-rag-assistant evaluate-web
+```
+
+Then open your browser to http://localhost:8501
+
+#### 2. Quick Evaluation (CLI Interface)
+Interactive command-line evaluation with demo database:
+
+```bash
+docker run -it -v $(pwd)/data:/app/data blender-rag-assistant evaluate-cli
+```
+
+#### 3. Build Demo Database Only
+Useful for CI/CD pipelines or when you want to separate setup from runtime:
+
+```bash
+docker run -v $(pwd)/data:/app/data blender-rag-assistant build-demo
+```
+
+#### 4. Build Full Production Database
+For production deployment with complete Blender documentation:
+
+```bash
+docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key -v $(pwd)/data:/app/data blender-rag-assistant build-full
+```
+
+#### 5. Run Web Interface (DB Pre-built)
+When database is already built and persisted:
+
+```bash
+docker run -p 8501:8501 -v $(pwd)/data:/app/data blender-rag-assistant run-web
+```
+
+#### 6. Run CLI Interface (DB Pre-built)
+Command-line interface with existing database:
+
+```bash
+docker run -it -v $(pwd)/data:/app/data blender-rag-assistant run-cli
+```
+
+### Docker Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `RAG_MODE` | Operation mode: `evaluation` or `production` | `evaluation` | No |
+| `OPENAI_API_KEY` | OpenAI API key for production mode | - | For production |
+| `GROQ_API_KEY` | Groq API key (optional) | - | No |
+
+### Volume Mounts
+
+**Required Volumes:**
+- `-v $(pwd)/data:/app/data` - Persist downloaded docs and vector database
+
+**Optional Volumes:**
+- `-v $(pwd)/outputs:/app/outputs` - Persist generated responses and logs
+- `-v $(pwd)/.env:/app/.env` - Custom environment configuration
+
+### Production Deployment
+
+#### Complete Production Setup
+
+```bash
+# Build production image
+docker build -t blender-rag-assistant:prod .
+
+# Set up full database (one-time setup)
+docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
+  -v $(pwd)/data:/app/data \
+  blender-rag-assistant:prod build-full
+
+# Run production web interface
+docker run -d -p 8501:8501 \
+  -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
+  -v $(pwd)/data:/app/data \
+  --name blender-rag-prod \
+  blender-rag-assistant:prod run-web
+```
+
+#### Using Docker Compose
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  blender-rag:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - RAG_MODE=evaluation
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    command: evaluate-web
+```
+
+Run with:
+```bash
+docker-compose up
+```
+
+### Development and Testing
+
+```bash
+# Run tests
+docker run --rm blender-rag-assistant python -m pytest
+
+# Interactive shell
+docker run -it --entrypoint bash blender-rag-assistant
+
+# Custom commands
+docker run --rm blender-rag-assistant python --version
+```
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **Permission Errors**: Ensure volumes are writable
+   ```bash
+   chmod 755 data/
+   ```
+
+2. **Port Already in Use**: Change port mapping
+   ```bash
+   docker run -p 8502:8501 ... run-web
+   ```
+
+3. **Memory Issues**: Increase Docker memory limit (4GB+ recommended)
+
+4. **API Key Issues**: Verify environment variables
+   ```bash
+   docker run --rm -e OPENAI_API_KEY=test blender-rag-assistant bash -c "env | grep API"
+   ```
+
 ## Evaluation Mode
 
 When running in evaluation mode (default configuration), try these example questions to test the RAG system's capabilities:

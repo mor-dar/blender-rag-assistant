@@ -209,7 +209,7 @@ __marimo__/
 # Local files
 .env
 .devcontainer
-*.sh
+convenience_installs.sh
 data/raw*
 data/vector_db
 lectures

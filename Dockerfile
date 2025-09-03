@@ -38,10 +38,12 @@ USER app
 # Expose port for optional web interface
 EXPOSE 8501
 
-# Default command
-CMD ["python", "main.py"]
+# Create entrypoint script for custom commands
+COPY --chown=app:app docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
-# Alternative commands:
-# To run setup: docker run --rm -v $(pwd)/data:/app/data <image> python scripts/setup_knowledge_base.py
-# To run tests: docker run --rm <image> python -m pytest
-# To run with Streamlit: docker run --rm -p 8501:8501 <image> streamlit run src/interface/web.py
+# Use entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
+# Default command
+CMD ["run-cli"]
