@@ -45,11 +45,11 @@ DEMO_DOCUMENTS = [
 def get_tier_configs(base_collection_name: str) -> Dict[str, Dict[str, str]]:
     return {
         "demo": {
-            "collection_name": f"{base_collection_name}_demo",
+            "collection_name": base_collection_name,
             "description": "Demo dataset for evaluation and testing"
         },
         "full": {
-            "collection_name": f"{base_collection_name}_full", 
+            "collection_name": base_collection_name, 
             "description": "Complete Blender documentation dataset"
         }
     }
