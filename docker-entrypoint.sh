@@ -4,6 +4,22 @@ set -e
 # Docker entrypoint script for Blender Bot
 # Supports custom commands for evaluation and production deployment
 
+# Function to check API keys
+check_api_keys() {
+    if [ -z "$GROQ_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
+        echo "ERROR: No API keys found in environment variables"
+        echo "Please set at least one of the following environment variables:"
+        echo "  GROQ_API_KEY    - For Groq/Llama models (recommended for evaluation)"
+        echo "  OPENAI_API_KEY  - For OpenAI models (required for production)"
+        echo ""
+        echo "Example:"
+        echo "  docker run -e GROQ_API_KEY=your_key_here <image> <command>"
+        echo "  docker run -e OPENAI_API_KEY=your_key_here <image> <command>"
+        echo ""
+        exit 1
+    fi
+}
+
 # Function to download docs and setup demo database
 setup_demo() {
     echo "Downloading Blender documentation..."
@@ -42,6 +58,7 @@ run_cli() {
 case "$1" in
     "evaluate-web")
         echo "Evaluation mode: Setting up demo database and launching web interface..."
+        check_api_keys
         export RAG_MODE=evaluation
         setup_demo
         run_web
@@ -49,6 +66,7 @@ case "$1" in
     
     "evaluate-cli")
         echo "Evaluation mode: Setting up demo database and launching CLI interface..."
+        check_api_keys
         export RAG_MODE=evaluation
         setup_demo
         run_cli
@@ -56,23 +74,27 @@ case "$1" in
     
     "build-demo")
         echo "Building demo database..."
+        check_api_keys
         export RAG_MODE=evaluation
         setup_demo
         ;;
     
     "build-full")
         echo "Building full database..."
+        check_api_keys
         export RAG_MODE=production
         setup_full
         ;;
     
     "run-web")
         echo "Running web interface (assuming database exists)..."
+        check_api_keys
         run_web
         ;;
     
     "run-cli")
         echo "Running CLI interface (assuming database exists)..."
+        check_api_keys
         run_cli
         ;;
     
