@@ -158,9 +158,11 @@ class DocumentProcessor:
                 for tag in heading_tags:
                     heading_text = tag.get_text().strip()
                     if heading_text:
+                        # Clean the heading text to remove ¶ symbols and encoding issues
+                        clean_heading_text = self.text_cleaner.clean_text(heading_text)
                         headings.append({
                             "level": level,
-                            "text": heading_text,
+                            "text": clean_heading_text,
                             "id": tag.get('id', ''),
                             "classes": tag.get('class', [])
                         })
@@ -241,8 +243,46 @@ class DocumentProcessor:
         Returns:
             Reconstructed URL for the documentation page
         """
-        # This is a simplified conversion - in practice you'd want to map back to original URLs
-        return f"https://docs.blender.org/manual/en/latest/{file_path.name}"
+        # Reconstruct the proper Blender documentation URL structure
+        parts = file_path.parts
+        
+        # Find the path after 'raw' or after 'blender_manual_html' directory
+        url_path_parts = []
+        
+        try:
+            # Case 1: Look for 'raw' directory structure
+            if 'raw' in parts:
+                raw_idx = parts.index('raw')
+                url_path_parts = parts[raw_idx + 1:]
+            # Case 2: Look for 'blender_manual_html' directory (temp dirs, demo mode)
+            elif 'blender_manual_html' in parts:
+                html_idx = parts.index('blender_manual_html')
+                url_path_parts = parts[html_idx + 1:]
+            # Case 3: Try to find interface/controls/etc pattern
+            else:
+                # Look for common Blender doc patterns
+                for i, part in enumerate(parts):
+                    if part in ['interface', 'modeling', 'animation', 'physics', 'rendering', 'scripting']:
+                        url_path_parts = parts[i:]
+                        break
+            
+            # Skip 'blender_manual_html' directory if it's still there
+            if url_path_parts and url_path_parts[0] == 'blender_manual_html':
+                url_path_parts = url_path_parts[1:]
+            
+            # Join the remaining parts if we found any
+            if url_path_parts:
+                url_path = '/'.join(url_path_parts)
+                # Remove .html extension and reconstruct with proper version
+                if url_path.endswith('.html'):
+                    url_path = url_path[:-5]  # Remove .html
+                return f"https://docs.blender.org/manual/en/4.5/{url_path}.html"
+                
+        except (ValueError, IndexError):
+            pass
+        
+        # Fallback to simple filename if path parsing fails
+        return f"https://docs.blender.org/manual/en/4.5/{file_path.stem}.html"
 
     def chunk_text(self, text: str, metadata: Dict, use_semantic: bool = True) -> List[Dict]:
         """Split text into chunks using either semantic or legacy strategy.

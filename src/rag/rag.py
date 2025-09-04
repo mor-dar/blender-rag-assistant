@@ -106,24 +106,68 @@ class BlenderAssistantRAG:
         if not results:
             return "No relevant documentation found for this query."
         
-        context_parts = ["Retrieved Documentation Context:\n"]
+        context_parts = []
         
         for i, result in enumerate(results, 1):
-            # Extract source info from metadata if available
-            source_info = "Unknown source"
-            if result.metadata:
-                if 'source' in result.metadata:
-                    source_info = result.metadata['source']
-                elif 'file_path' in result.metadata:
-                    source_info = result.metadata['file_path']
+            # Extract source info from metadata for citations
+            title = result.metadata.get('title', 'Unknown Page') if result.metadata else 'Unknown Page'
+            section = result.metadata.get('section', '') if result.metadata else ''
+            url = result.metadata.get('url', '') if result.metadata else ''
             
-            # Format each result with source and score
-            context_parts.append(f"[Source {i} - Score: {result.score:.3f}]")
-            context_parts.append(f"From: {source_info}")
-            context_parts.append(f"Content: {result.text.strip()}")
+            # Format source reference for citation
+            source_ref = f"{title}"
+            if section:
+                source_ref += f" ({section})"
+            if url:
+                source_ref += f" - {url}"
+            
+            # Format each result with clear citation numbering
+            context_parts.append(f"[{i}] {source_ref}")
+            context_parts.append(f"{result.text.strip()}")
             context_parts.append("")  # Empty line for readability
         
         return "\n".join(context_parts)
+
+    def _format_citations(self, results: List[RetrievalResult]) -> str:
+        """
+        Format citation references for appending to the response.
+        
+        Args:
+            results: List of RetrievalResult objects from semantic search
+            
+        Returns:
+            Formatted citations string
+        """
+        if not results:
+            return ""
+        
+        citation_parts = ["\n\n**Sources:**"]
+        
+        for i, result in enumerate(results, 1):
+            # Extract source info from metadata
+            title = result.metadata.get('title', 'Unknown Page') if result.metadata else 'Unknown Page'
+            subsection = result.metadata.get('subsection', '') if result.metadata else ''
+            url = result.metadata.get('url', '') if result.metadata else ''
+            
+            # Clean up title (remove redundant "Blender X.X LTS Manual" text and unwanted symbols)
+            clean_title = title.replace(' - Blender 4.5 LTS Manual', '').replace(' — Blender 4.5 LTS Manual', '')
+            clean_title = clean_title.replace(' - Blender Manual', '').replace(' — Blender Manual', '')
+            # Remove various paragraph/section symbols
+            clean_title = clean_title.replace('¶', '').replace('§', '').replace('◊', '')
+            clean_title = clean_title.replace(':', '').strip()  # Remove trailing colons too
+            
+            # Format citation with subsection if useful, otherwise just clean title
+            if subsection and subsection.lower() != clean_title.lower():
+                citation = f"[{i}] {clean_title}: {subsection}"
+            else:
+                citation = f"[{i}] {clean_title}"
+            
+            if url:
+                citation += f" - {url}"
+            
+            citation_parts.append(citation)
+        
+        return "\n".join(citation_parts)
 
     def handle_query(self, query: str) -> str:
         """
@@ -140,8 +184,8 @@ class BlenderAssistantRAG:
             logging.error("LLM is not initialized, but query was received.")
             return "LLM not available. Please check API key configuration."
         
-        # Retrieve relevant context from vector database
-        retrieval_results = self.retriever.retrieve(query)
+        # Retrieve relevant context from vector database (use 3 sources to reduce noise)
+        retrieval_results = self.retriever.retrieve(query, k=3)
         
         # Format retrieval results into string context for LLM
         formatted_context = self._format_context(retrieval_results)
@@ -173,7 +217,9 @@ class BlenderAssistantRAG:
             # Generate response using LLM with formatted context (no memory)
             response = self.llm.invoke(question=query, context=formatted_context)
         
-        return response
+        # Append citations to the response
+        citations = self._format_citations(retrieval_results)
+        return response + citations
         
     def clear_memory(self) -> None:
         """Clear conversation memory if enabled."""
