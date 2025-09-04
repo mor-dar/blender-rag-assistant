@@ -222,10 +222,11 @@ Blender Bot provides a comprehensive Docker setup with custom commands for diffe
 
 ### Quick Start
 
-#### Build the Docker Image
+#### Using Pre-built Image
 
 ```bash
-docker build -t blender-rag-assistant .
+# Pull the latest version
+docker pull mdar/blender-rag-assistant:v1.0.0
 ```
 
 #### Available Commands
@@ -250,7 +251,7 @@ The Docker image supports six custom commands for different deployment scenarios
 Perfect for testing and evaluation - sets up demo database and launches web UI:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data blender-rag-assistant evaluate-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 evaluate-web
 ```
 
 Then open your browser to http://localhost:8501
@@ -259,35 +260,35 @@ Then open your browser to http://localhost:8501
 Interactive command-line evaluation with demo database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data blender-rag-assistant evaluate-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 evaluate-cli
 ```
 
 #### 3. Build Demo Database Only
 Useful for CI/CD pipelines or when you want to separate setup from runtime:
 
 ```bash
-docker run -v $(pwd)/data:/app/data blender-rag-assistant build-demo
+docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 build-demo
 ```
 
 #### 4. Build Full Production Database
 For production deployment with complete Blender documentation:
 
 ```bash
-docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key -v $(pwd)/data:/app/data blender-rag-assistant build-full
+docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 build-full
 ```
 
 #### 5. Run Web Interface (DB Pre-built)
 When database is already built and persisted:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data blender-rag-assistant run-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 run-web
 ```
 
 #### 6. Run CLI Interface (DB Pre-built)
 Command-line interface with existing database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data blender-rag-assistant run-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 run-cli
 ```
 
 ### Docker Environment Variables
@@ -312,20 +313,20 @@ docker run -it -v $(pwd)/data:/app/data blender-rag-assistant run-cli
 #### Complete Production Setup
 
 ```bash
-# Build production image
-docker build -t blender-rag-assistant:prod .
+# Pull production image
+docker pull mdar/blender-rag-assistant:v1.0.0
 
 # Set up full database (one-time setup)
 docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
   -v $(pwd)/data:/app/data \
-  blender-rag-assistant:prod build-full
+  mdar/blender-rag-assistant:v1.0.0 build-full
 
 # Run production web interface
 docker run -d -p 8501:8501 \
   -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
   -v $(pwd)/data:/app/data \
   --name blender-rag-prod \
-  blender-rag-assistant:prod run-web
+  mdar/blender-rag-assistant:v1.0.0 run-web
 ```
 
 #### Using Docker Compose
@@ -336,7 +337,7 @@ Create `docker-compose.yml`:
 version: '3.8'
 services:
   blender-rag:
-    build: .
+    image: mdar/blender-rag-assistant:v1.0.0
     ports:
       - "8501:8501"
     volumes:
@@ -357,13 +358,13 @@ docker-compose up
 
 ```bash
 # Run tests
-docker run --rm blender-rag-assistant python -m pytest
+docker run --rm mdar/blender-rag-assistant:v1.0.0 python -m pytest
 
 # Interactive shell
-docker run -it --entrypoint bash blender-rag-assistant
+docker run -it --entrypoint bash mdar/blender-rag-assistant:v1.0.0
 
 # Custom commands
-docker run --rm blender-rag-assistant python --version
+docker run --rm mdar/blender-rag-assistant:v1.0.0 python --version
 ```
 
 ### Troubleshooting
