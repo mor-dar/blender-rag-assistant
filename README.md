@@ -226,7 +226,7 @@ Blender Bot provides a comprehensive Docker setup with custom commands for diffe
 
 ```bash
 # Pull the latest version
-docker pull mdar/blender-rag-assistant:v1.0.3
+docker pull mdar/blender-rag-assistant:v1.0.5
 ```
 
 #### Available Commands
@@ -237,9 +237,11 @@ The Docker image supports six custom commands for different deployment scenarios
 - `evaluate-web`: Download data, build demo DB, launch web interface
 - `evaluate-cli`: Download data, build demo DB, launch CLI interface
 
+> **Note:** Demo mode uses a database built from only 5 pages of the Blender manual for quick testing and evaluation.
+
 **Setup Commands:**
-- `build-demo`: Download data and build demo database only
-- `build-full`: Download data and build full database only
+- `build-demo`: Download data and build demo database only (5 pages)
+- `build-full`: Download data and build full database only (complete manual)
 
 **Runtime Commands (Assume Database Exists):**
 - `run-web`: Launch web interface only
@@ -251,7 +253,7 @@ The Docker image supports six custom commands for different deployment scenarios
 Perfect for testing and evaluation - sets up demo database and launches web UI:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 evaluate-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 evaluate-web
 ```
 
 Then open your browser to http://localhost:8501
@@ -260,35 +262,35 @@ Then open your browser to http://localhost:8501
 Interactive command-line evaluation with demo database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 evaluate-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 evaluate-cli
 ```
 
 #### 3. Build Demo Database Only
 Useful for CI/CD pipelines or when you want to separate setup from runtime:
 
 ```bash
-docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 build-demo
+docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 build-demo
 ```
 
 #### 4. Build Full Production Database
 For production deployment with complete Blender documentation:
 
 ```bash
-docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 build-full
+docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 build-full
 ```
 
 #### 5. Run Web Interface (DB Pre-built)
 When database is already built and persisted:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 run-web
 ```
 
 #### 6. Run CLI Interface (DB Pre-built)
 Command-line interface with existing database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.5 run-cli
 ```
 
 ### Docker Environment Variables
@@ -300,12 +302,11 @@ docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cl
 
 ### Volume Mounts
 
-**Required Volumes:**
-- `-v $(pwd)/data:/app/data` - Persist downloaded docs and vector database
-
-**Optional Volumes:**
-- `-v $(pwd)/outputs:/app/outputs` - Persist generated responses and logs
+**Volume Mounts (Optional):**
+- `-v $(pwd)/data:/app/data` - Persist downloaded docs and vector database (recommended for data persistence)
 - `-v $(pwd)/.env:/app/.env` - Custom environment configuration
+
+**Note:** Volume mounts are optional but recommended. Without data volume mount, the system will re-download documentation on each container restart.
 
 ### Production Deployment
 
@@ -313,17 +314,17 @@ docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cl
 
 ```bash
 # Pull production image
-docker pull mdar/blender-rag-assistant:v1.0.3
+docker pull mdar/blender-rag-assistant:v1.0.5
 
 # Set up full database (one-time setup)
 docker run -v $(pwd)/data:/app/data \
-  mdar/blender-rag-assistant:v1.0.3 build-full
+  mdar/blender-rag-assistant:v1.0.5 build-full
 
 # Run web interface
 docker run -d -p 8501:8501 \
   -v $(pwd)/data:/app/data \
   --name blender-rag-prod \
-  mdar/blender-rag-assistant:v1.0.3 run-web
+  mdar/blender-rag-assistant:v1.0.5 run-web
 ```
 
 #### Using Docker Compose
@@ -334,12 +335,11 @@ Create `docker-compose.yml`:
 version: '3.8'
 services:
   blender-rag:
-    image: mdar/blender-rag-assistant:v1.0.3
+    image: mdar/blender-rag-assistant:v1.0.5
     ports:
       - "8501:8501"
     volumes:
       - ./data:/app/data
-      - ./outputs:/app/outputs
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
     command: evaluate-web
@@ -354,13 +354,13 @@ docker-compose up
 
 ```bash
 # Run tests
-docker run --rm mdar/blender-rag-assistant:v1.0.3 python -m pytest
+docker run --rm mdar/blender-rag-assistant:v1.0.5 python -m pytest
 
 # Interactive shell
-docker run -it --entrypoint bash mdar/blender-rag-assistant:v1.0.3
+docker run -it --entrypoint bash mdar/blender-rag-assistant:v1.0.5
 
 # Custom commands
-docker run --rm mdar/blender-rag-assistant:v1.0.3 python --version
+docker run --rm mdar/blender-rag-assistant:v1.0.5 python --version
 ```
 
 ### Troubleshooting
