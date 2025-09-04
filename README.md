@@ -44,7 +44,8 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 4. **Response Generation**
    - Context-aware prompt construction
    - LLM reasoning with retrieved knowledge
-   - Structured response formatting with citations
+   - Structured response formatting with numbered citations [1], [2], [3]
+   - Clean source references with working Blender documentation URLs
 
 5. **Conversation Memory** (Optional)
    - Window memory: Keep recent N messages for context
@@ -53,11 +54,12 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 
 ### Key Technologies
 
-- **Language Models**: Groq Llama3-8B
+- **Language Models**: Groq Llama3.1-8B or OpenAI GPT models
 - **Embeddings**: HuggingFace sentence-transformers
 - **Vector Database**: ChromaDB with persistence
 - **Framework**: LangChain for orchestration
 - **Documentation**: Blender 4.5 Manual (CC-BY-SA 4.0)
+- **Citations**: Numbered references with working documentation URLs
 
 ## License & Attribution
 
@@ -89,7 +91,7 @@ The system is highly configurable through environment variables. Copy `.env.exam
 |----------|------|---------|-------------|
 | `RAG_MODE` | string | "evaluation" | Operation mode: "evaluation" (Groq) or "production" (OpenAI) |
 | `GROQ_API_KEY` | string | None | API key for Groq (required in evaluation mode) |
-| `GROQ_MODEL` | string | "llama3-8b-8192" | Groq model name |
+| `GROQ_MODEL` | string | "llama-3.1-8b-instant" | Groq model name |
 | `GROQ_TEMPERATURE` | float | 0.7 | Temperature for Groq generation |
 | `GROQ_MAX_TOKENS` | int | 2048 | Max tokens for Groq responses |
 | `OPENAI_API_KEY` | string | None | API key for OpenAI (required in production mode) |
@@ -106,7 +108,7 @@ The system is highly configurable through environment variables. Copy `.env.exam
 #### Embedding Configuration
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `EMBEDDING_MODEL` | string | "all-MiniLM-L6-v2" | HuggingFace embedding model |
+| `EMBEDDING_MODEL` | string | "multi-qa-MiniLM-L6-cos-v1" | HuggingFace embedding model |
 | `EMBEDDING_DEVICE` | string | "cpu" | Device for embeddings: "cpu" or "cuda" |
 | `EMBEDDING_BATCH_SIZE` | int | 32 | Batch size for embedding generation |
 
@@ -226,7 +228,7 @@ Blender Bot provides a comprehensive Docker setup with custom commands for diffe
 
 ```bash
 # Pull the latest version
-docker pull mdar/blender-rag-assistant:v1.0.0
+docker pull mdar/blender-rag-assistant:v1.0.3
 ```
 
 #### Available Commands
@@ -251,7 +253,7 @@ The Docker image supports six custom commands for different deployment scenarios
 Perfect for testing and evaluation - sets up demo database and launches web UI:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 evaluate-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 evaluate-web
 ```
 
 Then open your browser to http://localhost:8501
@@ -260,35 +262,35 @@ Then open your browser to http://localhost:8501
 Interactive command-line evaluation with demo database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 evaluate-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 evaluate-cli
 ```
 
 #### 3. Build Demo Database Only
 Useful for CI/CD pipelines or when you want to separate setup from runtime:
 
 ```bash
-docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 build-demo
+docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 build-demo
 ```
 
 #### 4. Build Full Production Database
 For production deployment with complete Blender documentation:
 
 ```bash
-docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 build-full
+docker run -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 build-full
 ```
 
 #### 5. Run Web Interface (DB Pre-built)
 When database is already built and persisted:
 
 ```bash
-docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 run-web
+docker run -p 8501:8501 -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-web
 ```
 
 #### 6. Run CLI Interface (DB Pre-built)
 Command-line interface with existing database:
 
 ```bash
-docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 run-cli
+docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cli
 ```
 
 ### Docker Environment Variables
@@ -314,19 +316,19 @@ docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.0 run-cl
 
 ```bash
 # Pull production image
-docker pull mdar/blender-rag-assistant:v1.0.0
+docker pull mdar/blender-rag-assistant:v1.0.3
 
 # Set up full database (one-time setup)
-docker run -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
+docker run -e RAG_MODE=production \
   -v $(pwd)/data:/app/data \
-  mdar/blender-rag-assistant:v1.0.0 build-full
+  mdar/blender-rag-assistant:v1.0.3 build-full
 
 # Run production web interface
 docker run -d -p 8501:8501 \
-  -e RAG_MODE=production -e OPENAI_API_KEY=your-key \
+  -e RAG_MODE=production \
   -v $(pwd)/data:/app/data \
   --name blender-rag-prod \
-  mdar/blender-rag-assistant:v1.0.0 run-web
+  mdar/blender-rag-assistant:v1.0.3 run-web
 ```
 
 #### Using Docker Compose
@@ -337,7 +339,7 @@ Create `docker-compose.yml`:
 version: '3.8'
 services:
   blender-rag:
-    image: mdar/blender-rag-assistant:v1.0.0
+    image: mdar/blender-rag-assistant:v1.0.3
     ports:
       - "8501:8501"
     volumes:
@@ -358,13 +360,13 @@ docker-compose up
 
 ```bash
 # Run tests
-docker run --rm mdar/blender-rag-assistant:v1.0.0 python -m pytest
+docker run --rm mdar/blender-rag-assistant:v1.0.3 python -m pytest
 
 # Interactive shell
-docker run -it --entrypoint bash mdar/blender-rag-assistant:v1.0.0
+docker run -it --entrypoint bash mdar/blender-rag-assistant:v1.0.3
 
 # Custom commands
-docker run --rm mdar/blender-rag-assistant:v1.0.0 python --version
+docker run --rm mdar/blender-rag-assistant:v1.0.3 python --version
 ```
 
 ### Troubleshooting
