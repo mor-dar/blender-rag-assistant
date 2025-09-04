@@ -1,0 +1,62 @@
+# Environment files - NEVER copy into container
+.env
+.env.*
+!.env.example
+
+# Git files
+.git
+.gitignore
+
+# IDE files
+.vscode
+.claude
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Data directories (will be mounted as volumes)
+data/raw/*
+data/processed/*
+data/vector_db/*
+outputs/*
+logs/*
+
+# Keep directory structure but ignore contents
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/vector_db/.gitkeep
+!outputs/.gitkeep
+!logs/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation and temporary files
+README.md.bak
+*.tmp
+*.temp
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
