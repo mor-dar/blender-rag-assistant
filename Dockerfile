@@ -19,8 +19,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . .
+# Copy project files explicitly (avoid COPY . . for security)
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY tests/ ./tests/
+COPY main.py ./
+COPY pytest.ini ./
 
 # Create necessary directories
 RUN mkdir -p data/raw data/processed data/vector_db outputs logs
