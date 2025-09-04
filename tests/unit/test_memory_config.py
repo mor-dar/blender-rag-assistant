@@ -127,7 +127,6 @@ class TestMemoryConfiguration:
             'MEMORY_TYPE': 'window',
             'MEMORY_WINDOW_SIZE': '8',
             'MEMORY_MAX_TOKEN_LIMIT': '1500',
-            'RAG_MODE': 'evaluation',
             'GROQ_API_KEY': 'test-key',
             'CHUNK_SIZE': '1024'
         }
@@ -139,13 +138,12 @@ class TestMemoryConfiguration:
             
             from utils.config import (
                 MEMORY_TYPE, MEMORY_WINDOW_SIZE, MEMORY_MAX_TOKEN_LIMIT,
-                RAG_MODE, GROQ_API_KEY, CHUNK_SIZE
+                GROQ_API_KEY, CHUNK_SIZE
             )
             
             assert MEMORY_TYPE == 'window'
             assert MEMORY_WINDOW_SIZE == 8
             assert MEMORY_MAX_TOKEN_LIMIT == 1500
-            assert RAG_MODE == 'evaluation'
             assert GROQ_API_KEY == 'test-key'
             assert CHUNK_SIZE == 1024
     
@@ -291,37 +289,35 @@ class TestMemoryConfigurationIntegration:
             except ValueError:
                 pytest.fail("Memory configuration caused validation to fail")
     
-    def test_memory_config_with_different_rag_modes(self):
-        """Test memory configuration with different RAG modes."""
+    def test_memory_config_with_different_api_keys(self):
+        """Test memory configuration with different API keys."""
         memory_config = {
             'MEMORY_TYPE': 'summary',
             'MEMORY_WINDOW_SIZE': '4',
             'MEMORY_MAX_TOKEN_LIMIT': '800'
         }
         
-        # Test with evaluation mode
-        eval_env = {**memory_config, 'RAG_MODE': 'evaluation', 'GROQ_API_KEY': 'test-key'}
-        with patch.dict(os.environ, eval_env, clear=True):
+        # Test with Groq API key
+        groq_env = {**memory_config, 'GROQ_API_KEY': 'test-groq-key'}
+        with patch.dict(os.environ, groq_env, clear=True):
             import importlib
             import utils.config
             importlib.reload(utils.config)
             
-            from utils.config import MEMORY_TYPE, RAG_MODE, is_production_mode
+            from utils.config import MEMORY_TYPE, GROQ_API_KEY
             assert MEMORY_TYPE == 'summary'
-            assert RAG_MODE == 'evaluation'
-            assert not is_production_mode()
+            assert GROQ_API_KEY == 'test-groq-key'
         
-        # Test with production mode
-        prod_env = {**memory_config, 'RAG_MODE': 'production', 'OPENAI_API_KEY': 'test-key'}
-        with patch.dict(os.environ, prod_env, clear=True):
+        # Test with OpenAI API key
+        openai_env = {**memory_config, 'OPENAI_API_KEY': 'test-openai-key'}
+        with patch.dict(os.environ, openai_env, clear=True):
             import importlib
             import utils.config
             importlib.reload(utils.config)
             
-            from utils.config import MEMORY_TYPE, RAG_MODE, is_production_mode
+            from utils.config import MEMORY_TYPE, OPENAI_API_KEY
             assert MEMORY_TYPE == 'summary'
-            assert RAG_MODE == 'production'
-            assert is_production_mode()
+            assert OPENAI_API_KEY == 'test-openai-key'
 
 
 @pytest.mark.unit

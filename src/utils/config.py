@@ -3,13 +3,12 @@
 Simplified Configuration System for Blender Bot
 
 Loads configuration from environment variables with sensible defaults.
-Supports both evaluation (free Groq) and production (OpenAI) modes.
+Supports both Groq and OpenAI models based on API key availability.
 """
 
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 
 def read_env_variable(variable_name: str, default_value=None, exit_on_missing: bool = False):
@@ -69,16 +68,14 @@ def get_env_bool(variable_name: str, default: bool) -> bool:
     return str_to_bool(value)
 
 
-# === RAG Mode Configuration ===
-RAG_MODE = read_env_variable('RAG_MODE', 'evaluation')
-
-# Groq configuration (evaluation mode)
+# === LLM Configuration ===
+# Groq configuration
 GROQ_API_KEY = read_env_variable('GROQ_API_KEY')
 GROQ_MODEL = read_env_variable('GROQ_MODEL', 'llama-3.1-8b-instant')
 GROQ_TEMPERATURE = get_env_float('GROQ_TEMPERATURE', 0.7)
 GROQ_MAX_TOKENS = get_env_int('GROQ_MAX_TOKENS', 2048)
 
-# OpenAI configuration (production mode)
+# OpenAI configuration
 OPENAI_API_KEY = read_env_variable('OPENAI_API_KEY')
 OPENAI_MODEL = read_env_variable('OPENAI_MODEL', 'gpt-4')
 OPENAI_TEMPERATURE = get_env_float('OPENAI_TEMPERATURE', 0.7)
@@ -132,23 +129,14 @@ MEMORY_MAX_TOKEN_LIMIT = get_env_int('MEMORY_MAX_TOKEN_LIMIT', 1000)
 
 # === Helper Functions ===
 
-def is_production_mode() -> bool:
-    """Check if running in production mode."""
-    return RAG_MODE.lower() == 'production'
-
-
-def get_active_api_key() -> Optional[str]:
-    """Get the active API key based on mode."""
-    if is_production_mode():
-        return OPENAI_API_KEY
-    return GROQ_API_KEY
-
-
-def get_active_model() -> str:
-    """Get the active model based on mode."""
-    if is_production_mode():
-        return OPENAI_MODEL
-    return GROQ_MODEL
+def get_active_model_info() -> str:
+    """Get information about which model will be used based on available API keys."""
+    if GROQ_API_KEY:
+        return f"Groq ({GROQ_MODEL})"
+    elif OPENAI_API_KEY:
+        return f"OpenAI ({OPENAI_MODEL})"
+    else:
+        return "No API key configured"
 
 
 def get_chunking_config() -> dict:
@@ -185,14 +173,10 @@ def validate_config(strict: bool = False) -> None:
     """
     errors = []
     
-    # Validate required API keys based on mode (only in strict mode)
+    # Validate that at least one API key is present (only in strict mode)
     if strict:
-        if is_production_mode():
-            if not OPENAI_API_KEY:
-                errors.append("OPENAI_API_KEY is required for production mode")
-        else:
-            if not GROQ_API_KEY:
-                errors.append("GROQ_API_KEY is required for evaluation mode")
+        if not GROQ_API_KEY and not OPENAI_API_KEY:
+            errors.append("Either GROQ_API_KEY or OPENAI_API_KEY must be set")
     
     # Ensure directories exist
     CHROMA_PERSIST_DIRECTORY.mkdir(parents=True, exist_ok=True)
@@ -222,8 +206,7 @@ def validate_config(strict: bool = False) -> None:
 def print_config_summary() -> None:
     """Print a summary of the current configuration."""
     logging.info("Blender Bot Configuration:")
-    logging.info(f"  Mode: {RAG_MODE}")
-    logging.info(f"  Model: {get_active_model()}")
+    logging.info(f"  Model: {get_active_model_info()}")
     logging.info(f"  Vector DB: {CHROMA_COLLECTION_NAME} @ {CHROMA_PERSIST_DIRECTORY}")
     logging.info(f"  Embedding Model: {EMBEDDING_MODEL}")
     logging.info(f"  Chunking: {CHUNK_SIZE} tokens ({'semantic' if USE_SEMANTIC_CHUNKING else 'legacy'})")

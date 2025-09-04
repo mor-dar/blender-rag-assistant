@@ -57,17 +57,15 @@ run_cli() {
 # Main command dispatcher
 case "$1" in
     "evaluate-web")
-        echo "Evaluation mode: Setting up demo database and launching web interface..."
+        echo "Setting up demo database and launching web interface..."
         check_api_keys
-        export RAG_MODE=evaluation
         setup_demo
         run_web
         ;;
     
     "evaluate-cli")
-        echo "Evaluation mode: Setting up demo database and launching CLI interface..."
+        echo "Setting up demo database and launching CLI interface..."
         check_api_keys
-        export RAG_MODE=evaluation
         setup_demo
         run_cli
         ;;
@@ -75,14 +73,12 @@ case "$1" in
     "build-demo")
         echo "Building demo database..."
         check_api_keys
-        export RAG_MODE=evaluation
         setup_demo
         ;;
     
     "build-full")
         echo "Building full database..."
         check_api_keys
-        export RAG_MODE=production
         setup_full
         ;;
     
@@ -123,10 +119,8 @@ case "$1" in
         echo "  docker run -p 8501:8501 -v \$(pwd)/data:/app/data <image> run-web"
         echo ""
         echo "Environment variables:"
-        echo "  RAG_MODE=evaluation  Use demo dataset (default)"
-        echo "  RAG_MODE=production  Use full dataset"
-        echo "  OPENAI_API_KEY       Required for production mode"
-        echo "  GROQ_API_KEY         Optional for Groq models"
+        echo "  OPENAI_API_KEY       Required for OpenAI models"
+        echo "  GROQ_API_KEY         Required for Groq models"
         ;;
     
     *)

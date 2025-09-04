@@ -54,11 +54,10 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 
 ### Key Technologies
 
-- **Language Models**: Groq Llama3.1-8B or OpenAI GPT models
+- **Language Models**: Groq (Llama3.1-8B by default) or OpenAI GPT models
 - **Embeddings**: HuggingFace sentence-transformers
 - **Vector Database**: ChromaDB with persistence
 - **Framework**: LangChain for orchestration
-- **Documentation**: Blender 4.5 Manual (CC-BY-SA 4.0)
 - **Citations**: Numbered references with working documentation URLs
 
 ## License & Attribution
@@ -86,15 +85,14 @@ The system is highly configurable through environment variables. Copy `.env.exam
 
 ### Environment Variables
 
-#### RAG Mode Configuration
+#### LLM Configuration
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `RAG_MODE` | string | "evaluation" | Operation mode: "evaluation" (Groq) or "production" (OpenAI) |
-| `GROQ_API_KEY` | string | None | API key for Groq (required in evaluation mode) |
+| `GROQ_API_KEY` | string | None | API key for Groq models |
 | `GROQ_MODEL` | string | "llama-3.1-8b-instant" | Groq model name |
 | `GROQ_TEMPERATURE` | float | 0.7 | Temperature for Groq generation |
 | `GROQ_MAX_TOKENS` | int | 2048 | Max tokens for Groq responses |
-| `OPENAI_API_KEY` | string | None | API key for OpenAI (required in production mode) |
+| `OPENAI_API_KEY` | string | None | API key for OpenAI models |
 | `OPENAI_MODEL` | string | "gpt-4" | OpenAI model name |
 | `OPENAI_TEMPERATURE` | float | 0.7 | Temperature for OpenAI generation |
 | `OPENAI_MAX_TOKENS` | int | 2048 | Max tokens for OpenAI responses |
@@ -297,9 +295,8 @@ docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cl
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `RAG_MODE` | Operation mode: `evaluation` or `production` | `evaluation` | No |
-| `OPENAI_API_KEY` | OpenAI API key for production mode | - | For production |
-| `GROQ_API_KEY` | Groq API key (optional) | - | No |
+| `OPENAI_API_KEY` | OpenAI API key | - | For OpenAI models |
+| `GROQ_API_KEY` | Groq API key | - | For Groq models |
 
 ### Volume Mounts
 
@@ -319,13 +316,11 @@ docker run -it -v $(pwd)/data:/app/data mdar/blender-rag-assistant:v1.0.3 run-cl
 docker pull mdar/blender-rag-assistant:v1.0.3
 
 # Set up full database (one-time setup)
-docker run -e RAG_MODE=production \
-  -v $(pwd)/data:/app/data \
+docker run -v $(pwd)/data:/app/data \
   mdar/blender-rag-assistant:v1.0.3 build-full
 
-# Run production web interface
+# Run web interface
 docker run -d -p 8501:8501 \
-  -e RAG_MODE=production \
   -v $(pwd)/data:/app/data \
   --name blender-rag-prod \
   mdar/blender-rag-assistant:v1.0.3 run-web
@@ -346,7 +341,6 @@ services:
       - ./data:/app/data
       - ./outputs:/app/outputs
     environment:
-      - RAG_MODE=evaluation
       - GROQ_API_KEY=${GROQ_API_KEY}
     command: evaluate-web
 ```

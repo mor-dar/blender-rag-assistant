@@ -32,7 +32,6 @@ RUN mkdir -p data/raw data/processed data/vector_db outputs logs
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
-ENV RAG_MODE=evaluation
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app && \

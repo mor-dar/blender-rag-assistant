@@ -98,16 +98,19 @@ def create_sidebar():
         
         # Environment Info
         st.subheader("Environment")
-        rag_mode = os.getenv('RAG_MODE', 'evaluation')
-        st.info(f"**Mode**: {rag_mode.title()}")
         
-        # Model Info
-        if rag_mode == 'evaluation':
+        # Model Info - show which model is being used based on available API keys
+        groq_key = os.getenv('GROQ_API_KEY')
+        openai_key = os.getenv('OPENAI_API_KEY')
+        
+        if groq_key:
             model = os.getenv('GROQ_MODEL', 'llama3-8b-8192')
-            st.info(f"**Model**: {model}")
-        else:
+            st.info(f"**Model**: Groq - {model}")
+        elif openai_key:
             model = os.getenv('OPENAI_MODEL', 'gpt-4')
-            st.info(f"**Model**: {model}")
+            st.info(f"**Model**: OpenAI - {model}")
+        else:
+            st.warning("**Model**: No API key configured")
         
         # Actions
         st.subheader("Actions")
@@ -167,7 +170,7 @@ def main():
     create_sidebar()
     
     # Main interface
-    st.title("🎨 Blender Bot")
+    st.title("Blender Bot")
     st.markdown("*Your intelligent guide to Blender 3D software*")
     
     # Initialize RAG system
