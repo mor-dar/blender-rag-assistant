@@ -1,5 +1,5 @@
 """
-Logging configuration for the Blender RAG Assistant.
+Logging configuration for Blender Bot.
 """
 import logging
 import sys

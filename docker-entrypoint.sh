@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Docker entrypoint script for Blender RAG Assistant
+# Docker entrypoint script for Blender Bot
 # Supports custom commands for evaluation and production deployment
 
 # Function to download docs and setup demo database
@@ -77,7 +77,7 @@ case "$1" in
         ;;
     
     "help"|"--help"|"-h")
-        echo "Blender RAG Assistant Docker Commands:"
+        echo "Blender Bot Docker Commands:"
         echo ""
         echo "Evaluation commands (demo database):"
         echo "  evaluate-web    Download data, build demo DB, run web interface"

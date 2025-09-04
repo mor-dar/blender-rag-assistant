@@ -1,5 +1,5 @@
 """
-Data processing module for Blender RAG Assistant.
+Data processing module for Blender Bot.
 
 This module handles document processing, chunking, and vector database building.
 """

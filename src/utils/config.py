@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simplified Configuration System for Blender RAG Assistant
+Simplified Configuration System for Blender Bot
 
 Loads configuration from environment variables with sensible defaults.
 Supports both evaluation (free Groq) and production (OpenAI) modes.
@@ -221,7 +221,7 @@ def validate_config(strict: bool = False) -> None:
 
 def print_config_summary() -> None:
     """Print a summary of the current configuration."""
-    logging.info("Blender RAG Assistant Configuration:")
+    logging.info("Blender Bot Configuration:")
     logging.info(f"  Mode: {RAG_MODE}")
     logging.info(f"  Model: {get_active_model()}")
     logging.info(f"  Vector DB: {CHROMA_COLLECTION_NAME} @ {CHROMA_PERSIST_DIRECTORY}")

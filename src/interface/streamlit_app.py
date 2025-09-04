@@ -1,5 +1,5 @@
 """
-Streamlit web interface for the Blender RAG Assistant.
+Streamlit web interface for Blender Bot.
 
 This module provides a user-friendly web interface using Streamlit,
 allowing users to interact with the RAG system through a browser.
@@ -137,7 +137,7 @@ def create_sidebar():
         # Documentation
         st.subheader("📚 About")
         st.markdown("""
-        **Blender RAG Assistant**
+        **Blender Bot**
         
         An intelligent documentation assistant for Blender 3D software, built using Retrieval-Augmented Generation (RAG) architecture.
         
@@ -154,7 +154,7 @@ def main():
     """Main Streamlit application."""
     # Page configuration
     st.set_page_config(
-        page_title="Blender RAG Assistant",
+        page_title="Blender Bot",
         page_icon="🎨",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -167,7 +167,7 @@ def main():
     create_sidebar()
     
     # Main interface
-    st.title("🎨 Blender RAG Assistant")
+    st.title("🎨 Blender Bot")
     st.markdown("*Your intelligent guide to Blender 3D software*")
     
     # Initialize RAG system

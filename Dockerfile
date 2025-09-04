@@ -1,4 +1,4 @@
-# Dockerfile for Blender RAG Assistant
+# Dockerfile for Blender Bot
 FROM python:3.13-slim
 
 # Set working directory

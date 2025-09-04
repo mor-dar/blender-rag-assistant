@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Blender RAG Assistant - Main Entry Point
+Blender Bot - Main Entry Point
 
 This script provides unified access to both CLI and web interfaces.
 Run with --web flag for Streamlit interface, or default CLI interface.
@@ -25,7 +25,7 @@ from rag.rag import BlenderAssistantRAG
 
 def run_cli():
     """Run the Command Line Interface."""
-    logging.info("\nBlender RAG Assistant (CLI Mode)")
+    logging.info("\nBlender Bot (CLI Mode)")
     logging.info("=" * 50)
     logging.info("Ask me anything about Blender 3D software!")
     logging.info("Type 'quit', 'exit', or 'q' to stop.\n")
@@ -45,7 +45,7 @@ def run_cli():
             
             # Handle quit commands
             if query.lower() in ['quit', 'exit', 'q', '']:
-                logging.info("\nThanks for using Blender RAG Assistant!")
+                logging.info("\nThanks for using Blender Bot!")
                 break
             
             logging.info("🔍 Searching knowledge base...")
@@ -64,7 +64,7 @@ def run_cli():
             logging.info(f"RAG response: {response}")
             
         except KeyboardInterrupt:
-            logging.info("\n\nThanks for using Blender RAG Assistant!")
+            logging.info("\n\nThanks for using Blender Bot!")
             break
         except Exception as e:
             logging.error(f"Error: {e}")
@@ -105,7 +105,7 @@ def run_web():
 def main():
     """Main entry point with interface selection."""
     parser = argparse.ArgumentParser(
-        description="Blender RAG Assistant - Intelligent Blender Documentation Guide",
+        description="Blender Bot - Intelligent Blender Documentation Guide",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -133,14 +133,14 @@ For more information, visit: https://github.com/your-repo/blender-rag-assistant
     parser.add_argument(
         "--version", 
         action="version", 
-        version="Blender RAG Assistant v1.0.0"
+        version="Blender Bot v1.0.0"
     )
     
     args = parser.parse_args()
     
     # Initialize logging (environment already loaded at top)
     initialize_logging()
-    logging.info("Blender RAG Assistant started")
+    logging.info("Blender Bot started")
     
     # Determine interface
     if args.web:
@@ -165,7 +165,7 @@ For more information, visit: https://github.com/your-repo/blender-rag-assistant
         logging.error(f"Application error: {e}")
         return 1
     finally:
-        logging.info("Blender RAG Assistant stopped")
+        logging.info("Blender Bot stopped")
 
 
 if __name__ == "__main__":

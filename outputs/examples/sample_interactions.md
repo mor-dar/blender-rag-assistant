@@ -1,6 +1,6 @@
-# Sample Blender RAG Assistant Interactions
+# Sample Blender Bot Interactions
 
-This file provides example inputs and expected outputs for the Blender RAG Assistant, demonstrating the system's capabilities for Ready Tensor Module 1 submission.
+This file provides example inputs and expected outputs for Blender Bot, demonstrating the system's capabilities for Ready Tensor Module 1 submission.
 
 ## Example 1: Basic UI Question
 

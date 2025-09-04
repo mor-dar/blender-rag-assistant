@@ -1,4 +1,4 @@
-# Blender RAG Assistant - Project Status
+# Blender Bot - Project Status
 
 ## **MODULE 1 CERTIFICATION - COMPLETE**
 

@@ -1,1 +1,1 @@
-"""Test suite for Blender RAG Assistant."""
+"""Test suite for Blender Bot."""

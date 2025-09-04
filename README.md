@@ -1,10 +1,10 @@
-# Blender RAG Assistant
+# Blender Bot
 
 An intelligent documentation assistant for Blender 3D software, built using Retrieval-Augmented Generation (RAG) architecture. This project demonstrates advanced agentic AI capabilities for Ready Tensor's Agentic AI Developer Certification Program (Module 1).
 
 ## Project Overview
 
-The Blender RAG Assistant transforms the complex Blender documentation into an interactive, intelligent guide that can answer user questions with contextual, cited responses. Unlike simple chatbots, this system retrieves relevant documentation chunks and generates accurate, grounded answers while maintaining proper attribution to source materials.
+Blender Bot transforms the complex Blender documentation into an interactive, intelligent guide that can answer user questions with contextual, cited responses. Unlike simple chatbots, this system retrieves relevant documentation chunks and generates accurate, grounded answers while maintaining proper attribution to source materials.
 
 ## Architecture
 
@@ -159,7 +159,7 @@ The system is highly configurable through environment variables. Copy `.env.exam
 
 ## Usage - Interface Options
 
-The Blender RAG Assistant provides two interaction modes to suit different preferences:
+Blender Bot provides two interaction modes to suit different preferences:
 
 ### Command Line Interface (CLI)
 
@@ -218,7 +218,7 @@ Both interfaces use the same underlying RAG system and provide identical functio
 
 ## Docker Deployment
 
-The Blender RAG Assistant provides a comprehensive Docker setup with custom commands for different deployment scenarios.
+Blender Bot provides a comprehensive Docker setup with custom commands for different deployment scenarios.
 
 ### Quick Start
 
