@@ -25,7 +25,7 @@ User Query → Query Processing → Vector Retrieval → Context Assembly → LL
 **Modular Design Principles:**
 - **Single Responsibility**: Each module handles one concern
 - **Clean Interfaces**: Well-defined APIs between components  
-- **Comprehensive Testing**: 100% test coverage with unit and integration tests
+- **Comprehensive Testing**: >97% test coverage with unit and integration tests
 
 ### RAG Pipeline
 

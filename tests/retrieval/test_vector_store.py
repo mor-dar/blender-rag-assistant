@@ -571,6 +571,65 @@ class TestVectorStore:
                 # This is the expected behavior - exception propagates
                 assert "Database info error" in str(e)
 
+    def test_update_documents_exception_handling(self, vector_store, sample_documents):
+        """Test update_documents exception handling (lines 251-253)."""
+        from unittest.mock import patch
+        
+        # Create a collection first
+        vector_store.create_collection("test_collection")
+        
+        # Mock the collection to raise an exception during update
+        with patch.object(vector_store, 'client') as mock_client:
+            mock_collection = Mock()
+            mock_collection.update.side_effect = Exception("Update operation failed")
+            mock_client.get_collection.return_value = mock_collection
+            
+            result = vector_store.update_documents(
+                "test_collection",
+                ["doc1", "doc2"],
+                documents=["Updated doc 1", "Updated doc 2"],
+                embeddings=[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]],
+                metadatas=[{"title": "Updated 1"}, {"title": "Updated 2"}]
+            )
+            
+            # Should return False on error
+            assert result is False
+
+    def test_delete_documents_exception_handling(self, vector_store, sample_documents):
+        """Test delete_documents exception handling (lines 276-278)."""
+        from unittest.mock import patch
+        
+        # Create a collection first
+        vector_store.create_collection("test_collection")
+        
+        # Mock the collection to raise an exception during delete
+        with patch.object(vector_store, 'client') as mock_client:
+            mock_collection = Mock()
+            mock_collection.delete.side_effect = Exception("Delete operation failed")
+            mock_client.get_collection.return_value = mock_collection
+            
+            result = vector_store.delete_documents("test_collection", ["doc1", "doc2"])
+            
+            # Should return False on error
+            assert result is False
+
+    def test_load_build_metadata_json_error(self, vector_store):
+        """Test load_build_metadata JSON parsing error handling (lines 321-323)."""
+        from unittest.mock import patch
+        import json
+        
+        # Create a metadata file with invalid JSON
+        collection_name = "json_error_test"
+        metadata_path = vector_store.db_path / f"build_metadata_{collection_name}.json"
+        
+        # Write invalid JSON to the file
+        with open(metadata_path, 'w') as f:
+            f.write("invalid json content {")
+        
+        # Should return None when JSON parsing fails
+        result = vector_store.load_build_metadata(collection_name)
+        assert result is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
