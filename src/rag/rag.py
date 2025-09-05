@@ -196,27 +196,28 @@ class BlenderAssistantRAG:
         
         # Add conversation history if memory is enabled
         if self.memory:
+            # Load conversation history (separate from LLM invocation for better error handling)
+            full_context = formatted_context
             try:
-                # Get conversation history
                 memory_vars = self.memory.load_memory_variables({})
                 conversation_history = memory_vars.get('history', '')
                 
                 # Combine context with conversation history
                 if conversation_history:
                     full_context = f"{formatted_context}\n\nConversation History:\n{conversation_history}"
-                else:
-                    full_context = formatted_context
-                    
-                # Generate response using LLM with full context
-                response = self.llm.invoke(question=query, context=full_context)
-                
-                # Save the conversation to memory
-                self.memory.save_context({"input": query}, {"output": response})
-                
             except Exception as e:
-                logging.error(f"Error using memory: {e}")
-                # Fallback to normal operation without memory
-                response = self.llm.invoke(question=query, context=formatted_context)
+                logging.error(f"Error loading memory: {e}")
+                # Continue with basic context if memory loading fails
+            
+            # Generate response using LLM with context (including any loaded memory)
+            response = self.llm.invoke(question=query, context=full_context)
+            
+            # Save the conversation to memory (only if LLM invocation succeeded)
+            try:
+                self.memory.save_context({"input": query}, {"output": response})
+            except Exception as e:
+                logging.error(f"Error saving to memory: {e}")
+                # Don't fail the request if memory save fails, just log it
         else:
             # Generate response using LLM with formatted context (no memory)
             response = self.llm.invoke(question=query, context=formatted_context)
