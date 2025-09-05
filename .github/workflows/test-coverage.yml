@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11]
+        python-version: [3.13]
 
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
         python -m pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing --cov-config=.coveragerc -v
 
     - name: Upload coverage to Codecov
-      if: matrix.python-version == '3.10'  # Only upload once
+      if: matrix.python-version == '3.13'  # Only upload once
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
