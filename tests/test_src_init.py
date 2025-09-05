@@ -104,12 +104,12 @@ class TestPackageStructure:
         # Get all public attributes (not starting with _)
         public_attrs = [attr for attr in dir(src) if not attr.startswith('_')]
         
-        # Should only have our expected public constants
-        expected_attrs = []  # We don't expect any public attributes beyond metadata
+        # Expected submodules that get added when importing from subpackages
+        expected_submodules = ['data', 'interface', 'rag', 'retrieval', 'utils']
         
         for attr in public_attrs:
-            # All public attributes should be either expected or metadata
-            assert attr in expected_attrs or attr.startswith('__'), f"Unexpected public attribute: {attr}"
+            # All public attributes should be either expected submodules or metadata
+            assert attr in expected_submodules or attr.startswith('__'), f"Unexpected public attribute: {attr}"
 
 
 class TestVersionSpecifics:

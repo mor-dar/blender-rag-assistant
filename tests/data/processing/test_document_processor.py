@@ -600,6 +600,297 @@ class TestDocumentProcessor:
         assert isinstance(text, str)
         assert isinstance(metadata, dict)
 
+    # ADDITIONAL COVERAGE TESTS FOR MISSING LINES
+
+    def test_path_to_url_blender_manual_html_directory(self, processor):
+        """Test URL conversion with blender_manual_html directory structure."""
+        # Test case 2: blender_manual_html directory pattern
+        path = Path("/tmp/blender_manual_html/interface/controls/buttons.html")
+        
+        url = processor._path_to_url(path)
+        
+        assert url == "https://docs.blender.org/manual/en/4.5/interface/controls/buttons.html"
+
+    def test_path_to_url_nested_blender_manual_html(self, processor):
+        """Test URL conversion with nested blender_manual_html directory."""
+        # Test blender_manual_html removal logic (line 271-272)
+        path = Path("/data/blender_manual_html/blender_manual_html/modeling/basics.html")
+        
+        url = processor._path_to_url(path)
+        
+        assert url == "https://docs.blender.org/manual/en/4.5/modeling/basics.html"
+
+    def test_path_to_url_common_patterns(self, processor):
+        """Test URL conversion with common Blender doc patterns."""
+        # Test case 3: common patterns detection (lines 265-268)
+        test_patterns = [
+            ("/some/path/interface/controls.html", "interface/controls"),
+            ("/other/modeling/mesh/edit.html", "modeling/mesh/edit"), 
+            ("/docs/animation/keyframes.html", "animation/keyframes"),
+            ("/files/physics/cloth.html", "physics/cloth"),
+            ("/temp/rendering/cycles.html", "rendering/cycles"),
+            ("/data/scripting/python.html", "scripting/python")
+        ]
+        
+        for path_str, expected_suffix in test_patterns:
+            path = Path(path_str)
+            url = processor._path_to_url(path)
+            expected_url = f"https://docs.blender.org/manual/en/4.5/{expected_suffix}.html"
+            assert url == expected_url
+
+    def test_path_to_url_no_matching_pattern(self, processor):
+        """Test URL conversion fallback when no pattern matches."""
+        # Test fallback path (line 286)
+        path = Path("/random/path/unknown_file.html")
+        
+        url = processor._path_to_url(path)
+        
+        # Should use filename fallback
+        assert url == "https://docs.blender.org/manual/en/4.5/unknown_file.html"
+
+    def test_path_to_url_exception_handling(self, processor):
+        """Test URL conversion exception handling by using a malformed path."""
+        # Create a path that will cause an IndexError when trying to access parts
+        # This tests the exception handling in the _path_to_url method
+        
+        # Create a custom Path-like object that raises exceptions
+        class BadPath:
+            def __init__(self, path_str):
+                self.path_str = path_str
+                self._stem = Path(path_str).stem
+            
+            @property
+            def parts(self):
+                # Return parts that will cause issues in the index operations
+                return ("data", "raw")  # Missing expected parts to cause IndexError
+            
+            @property  
+            def stem(self):
+                return self._stem
+                
+        bad_path = BadPath("/data/raw/basics.html")
+        url = processor._path_to_url(bad_path)
+        
+        # Should fall back to filename approach when IndexError occurs
+        assert url == "https://docs.blender.org/manual/en/4.5/basics.html"
+
+    def test_content_type_classification_edge_cases(self, processor):
+        """Test content type classification for edge cases."""
+        from bs4 import BeautifulSoup
+        
+        # Test general content (fallback case, line 236)
+        html_general = "<html><body><p>Just some text without keywords</p></body></html>"
+        soup_general = BeautifulSoup(html_general, 'html.parser')
+        
+        content_type = processor._classify_content_type(soup_general, [])
+        assert content_type == "general"
+
+        # Test code content detection with <pre> tag
+        html_pre = "<html><body><pre>some_code_block</pre></body></html>"
+        soup_pre = BeautifulSoup(html_pre, 'html.parser')
+        
+        content_type = processor._classify_content_type(soup_pre, [])
+        assert content_type == "code"
+
+        # Test structured content with exactly 2 lists (not > 2)
+        html_two_lists = "<html><body><ul><li>1</li></ul><ol><li>2</li></ol></body></html>"
+        soup_two_lists = BeautifulSoup(html_two_lists, 'html.parser')
+        
+        content_type = processor._classify_content_type(soup_two_lists, [])
+        # Should not be "structured" because len(lists) == 2, not > 2
+        assert content_type == "general"
+
+        # Test structured content with 3+ lists
+        html_many_lists = "<html><body><ul><li>1</li></ul><ol><li>2</li></ol><ul><li>3</li></ul></body></html>"
+        soup_many_lists = BeautifulSoup(html_many_lists, 'html.parser')
+        
+        content_type = processor._classify_content_type(soup_many_lists, [])
+        assert content_type == "structured"
+
+    def test_extract_html_hierarchy_exception_handling(self, processor):
+        """Test HTML hierarchy extraction exception handling."""
+        from unittest.mock import patch
+        from bs4 import BeautifulSoup
+        
+        html = "<html><body><h1>Test</h1></body></html>"
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Mock find_all to raise exception (line 191-192)
+        with patch.object(soup, 'find_all', side_effect=Exception("Parse error")):
+            hierarchy = processor._extract_html_hierarchy(soup)
+            
+            # Should return default hierarchy structure
+            assert hierarchy["headings"] == []
+            assert hierarchy["subsection"] == ""
+            assert hierarchy["content_type"] == "general"
+
+    def test_subsection_extraction_no_h1(self, processor):
+        """Test subsection extraction when no h1 exists (line 182-186)."""
+        html_no_h1 = """
+        <html>
+        <body>
+            <main>
+                <h3>First heading is h3</h3>
+                <h4>Then h4</h4>
+                <h2>Finally h2</h2>
+            </main>
+        </body>
+        </html>
+        """
+        
+        file_path = Path("/test/no_h1.html")
+        text, metadata = processor.extract_text_from_html(html_no_h1, file_path)
+        
+        # Should pick first heading with level > 1, which would be h3 "First heading is h3"
+        # But looking for h2/h3 first, so should pick "Finally h2"
+        assert metadata["subsection"] == "Finally h2"
+
+    def test_subsection_extraction_no_h2_h3(self, processor):
+        """Test subsection extraction fallback logic (lines 184-186).""" 
+        html_no_h2_h3 = """
+        <html>
+        <body>
+            <main>
+                <h1>Main Title</h1>
+                <h4>First non-h1 heading</h4>
+                <h5>Another heading</h5>
+            </main>
+        </body>
+        </html>
+        """
+        
+        file_path = Path("/test/no_h2_h3.html")
+        text, metadata = processor.extract_text_from_html(html_no_h2_h3, file_path)
+        
+        # Should use first heading with level > 1 (h4)
+        assert metadata["subsection"] == "First non-h1 heading"
+
+    def test_chunk_text_legacy_explicit(self, processor):
+        """Test explicit legacy chunking path (line 305)."""
+        text = "This is test content for legacy chunking. " * 10
+        metadata = {"title": "Legacy Test", "source_file": "/legacy.html"}
+        
+        # Explicitly call legacy chunking
+        chunks = processor._chunk_text_legacy(text, metadata)
+        
+        assert len(chunks) > 0
+        for chunk in chunks:
+            assert "chunking_strategy" in chunk["metadata"]
+            assert chunk["metadata"]["chunking_strategy"] == "legacy"
+            assert "chunk_id" in chunk["metadata"]
+            assert "token_count" in chunk["metadata"]
+
+    def test_chunk_text_legacy_empty_text(self, processor):
+        """Test legacy chunking with empty text (lines 317-318)."""
+        text = ""
+        metadata = {"source_file": "/empty.html"}
+        
+        chunks = processor._chunk_text_legacy(text, metadata)
+        
+        assert chunks == []
+
+    def test_chunk_text_legacy_whitespace_only(self, processor):
+        """Test legacy chunking with whitespace-only text."""
+        text = "   \n\t  "  # Only whitespace
+        metadata = {"source_file": "/whitespace.html"}
+        
+        chunks = processor._chunk_text_legacy(text, metadata)
+        
+        # Should return empty list since text.strip() would be empty
+        assert chunks == []
+
+    def test_process_documents_file_encoding_error(self, processor):
+        """Test document processing with encoding errors.""" 
+        import tempfile
+        from pathlib import Path
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_dir = Path(temp_dir) / "raw"
+            raw_dir.mkdir()
+            
+            # Create file with non-UTF8 content that might cause encoding issues
+            bad_file = raw_dir / "encoding_test.html"
+            # Write binary content that's not valid UTF-8
+            with open(bad_file, 'wb') as f:
+                f.write(b'\xff\xfe<html><body>Test</body></html>')
+            
+            # This should handle encoding errors gracefully
+            chunks = processor.process_documents(raw_dir)
+            
+            # Should return a list (might be empty if encoding fails)
+            assert isinstance(chunks, list)
+
+    def test_process_documents_progress_logging(self, processor):
+        """Test progress logging during document processing (lines 383-384)."""
+        import tempfile
+        from pathlib import Path
+        import logging
+        from unittest.mock import patch
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_dir = Path(temp_dir) / "raw"
+            raw_dir.mkdir()
+            
+            # Create exactly 50 files to trigger progress logging
+            for i in range(52):  # More than 50 to trigger multiple logs
+                (raw_dir / f"file_{i:03d}.html").write_text(f"<html><body><h1>File {i}</h1></body></html>")
+            
+            # Mock the logger to capture log messages
+            with patch.object(processor.logger, 'info') as mock_info:
+                chunks = processor.process_documents(raw_dir)
+                
+                # Should have called info for progress updates
+                assert mock_info.call_count >= 2  # Initial + at least one progress update
+                
+                # Check that progress logging was called (lines 383-384)
+                progress_calls = [call for call in mock_info.call_args_list 
+                                if "Processed" in str(call) and "chunks so far" in str(call)]
+                assert len(progress_calls) > 0  # Should have progress logging calls
+
+    def test_process_documents_with_semantic_chunking_enabled(self, processor):
+        """Test document processing with semantic chunking enabled."""
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        
+        # Enable semantic chunking in config
+        processor.config["use_semantic_chunking"] = True
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_dir = Path(temp_dir) / "raw"
+            raw_dir.mkdir()
+            
+            # Create a test file with longer content to ensure chunking
+            test_content = "<html><head><title>Test Semantic</title></head><body><h1>Test Semantic</h1><p>Content for semantic chunking. " + "More content. " * 100 + "</p></body></html>"
+            test_file = raw_dir / "semantic_test.html"
+            test_file.write_text(test_content)
+            
+            # Mock the semantic chunker to return predictable results for testing
+            mock_chunks = [{"text": "Test chunk", "metadata": {"chunk_id": "test_1"}}]
+            with patch.object(processor.semantic_chunker, 'chunk_text_semantically', return_value=mock_chunks):
+                chunks = processor.process_documents(raw_dir)
+                
+                # Should call semantic chunking (line 379-380)
+                assert len(chunks) > 0
+
+    def test_process_documents_no_text_content(self, processor):
+        """Test processing documents that extract no text content."""
+        import tempfile
+        from pathlib import Path
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            raw_dir = Path(temp_dir) / "raw"
+            raw_dir.mkdir()
+            
+            # Create file with only scripts/styles (no actual text content)
+            empty_file = raw_dir / "empty_content.html"
+            empty_file.write_text("<html><body><script>alert('test')</script><style>body{}</style></body></html>")
+            
+            chunks = processor.process_documents(raw_dir)
+            
+            # Should handle files with no extractable text (line 377 - if text: check)
+            assert isinstance(chunks, list)  # Might be empty, but should be a list
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
