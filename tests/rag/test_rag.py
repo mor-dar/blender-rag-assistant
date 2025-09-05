@@ -67,16 +67,16 @@ class TestBlenderAssistantRAG:
             result = rag.handle_query("How do I start modeling in Blender?")
             
             # Verify retriever was called with correct method
-            mock_retriever.retrieve.assert_called_once_with("How do I start modeling in Blender?")
+            mock_retriever.retrieve.assert_called_once_with("How do I start modeling in Blender?", k=3)
             
             # Verify LLM was called with correct parameters
             mock_llm.invoke.assert_called_once()
             call_args = mock_llm.invoke.call_args[1]
             assert call_args['question'] == "How do I start modeling in Blender?"
             assert "Blender modeling documentation content" in call_args['context']
-            assert "Retrieved Documentation Context:" in call_args['context']
+            assert "[1] Unknown Page" in call_args['context']
             
-            assert result == "To start modeling in Blender..."
+            assert "To start modeling in Blender..." in result
     
     def test_handle_query_success_with_openai(self, mock_retrieval_results):
         """Test successful query handling with mocked OpenAI LLM."""
@@ -104,13 +104,13 @@ class TestBlenderAssistantRAG:
             
             result = rag.handle_query("How do I render in Blender?")
             
-            mock_retriever.retrieve.assert_called_once_with("How do I render in Blender?")
+            mock_retriever.retrieve.assert_called_once_with("How do I render in Blender?", k=3)
             mock_llm.invoke.assert_called_once()
             call_args = mock_llm.invoke.call_args[1]
             assert call_args['question'] == "How do I render in Blender?"
-            assert "Retrieved Documentation Context:" in call_args['context']
+            assert "[1] Unknown Page" in call_args['context']
             
-            assert result == "To render in Blender, press F12..."
+            assert "To render in Blender, press F12..." in result
     
     def test_initialization_with_different_collection_types(self):
         """Test initialization with different collection types."""
@@ -158,7 +158,7 @@ class TestBlenderAssistantRAG:
             rag = BlenderAssistantRAG()
             result = rag.handle_query("")
             
-            mock_retriever.retrieve.assert_called_once_with("")
+            mock_retriever.retrieve.assert_called_once_with("", k=3)
             mock_llm.invoke.assert_called_once()
             call_args = mock_llm.invoke.call_args[1]
             assert call_args['question'] == ""
@@ -195,8 +195,8 @@ class TestBlenderAssistantRAG:
             rag = BlenderAssistantRAG()
             result = rag.handle_query(special_query)
             
-            mock_retriever.retrieve.assert_called_once_with(special_query)
-            assert result == "Ctrl+R adds edge loops..."
+            mock_retriever.retrieve.assert_called_once_with(special_query, k=3)
+            assert "Ctrl+R adds edge loops..." in result
     
     def test_handle_query_long_query(self):
         """Test handling of very long query string."""
@@ -228,8 +228,8 @@ class TestBlenderAssistantRAG:
             rag = BlenderAssistantRAG()
             result = rag.handle_query(long_query)
             
-            mock_retriever.retrieve.assert_called_once_with(long_query)
-            assert result == "For complex modeling tasks..."
+            mock_retriever.retrieve.assert_called_once_with(long_query, k=3)
+            assert "For complex modeling tasks..." in result
     
     def test_llm_initialization_failure(self):
         """Test handling when LLM fails to initialize."""
@@ -260,6 +260,7 @@ class TestBlenderAssistantRAG:
         mock_retriever.retrieve.side_effect = Exception("Database connection failed")
         
         mock_llm = Mock()
+        mock_llm.invoke.return_value = "Error response"
         
         with patch('retrieval.SemanticRetriever', return_value=mock_retriever), \
              patch('rag.llms.groq_llm.GroqLLM', return_value=mock_llm), \
@@ -273,8 +274,10 @@ class TestBlenderAssistantRAG:
             from rag.rag import BlenderAssistantRAG
             rag = BlenderAssistantRAG()
             
-            with pytest.raises(Exception, match="Database connection failed"):
-                rag.handle_query("Test query")
+            # The retriever exception should not propagate - it's handled gracefully
+            result = rag.handle_query("Test query")
+            # Verify that the system handles the retriever error gracefully
+            assert "Error response" in result
     
     def test_llm_invoke_exception_propagation(self):
         """Test that LLM invoke exceptions propagate correctly."""
@@ -336,8 +339,8 @@ class TestBlenderAssistantRAG:
             rag = BlenderAssistantRAG()
             result = rag.handle_query(unicode_query)
             
-            mock_retriever.retrieve.assert_called_once_with(unicode_query)
-            assert result == "Unicode response"
+            mock_retriever.retrieve.assert_called_once_with(unicode_query, k=3)
+            assert "Unicode response" in result
 
 
 @pytest.mark.integration

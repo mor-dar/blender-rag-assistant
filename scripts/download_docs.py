@@ -19,13 +19,17 @@ from typing import Dict, List, Set
 import requests
 from bs4 import BeautifulSoup
 
+# Add path to import project config
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from utils.config import BLENDER_VERSION
+
 BLENDER_DOCS_CONFIG = {
-    "base_url": "https://docs.blender.org/manual/en/latest/",
-    "version": "4.5",
+    "base_url": f"https://docs.blender.org/manual/en/{BLENDER_VERSION}/",
+    "version": BLENDER_VERSION,
     "last_scraped": datetime.now().strftime("%Y-%m-%d"),
     "archive_urls": {
-        "html": "https://docs.blender.org/manual/en/latest/blender_manual_html.zip",
-        "epub": "https://docs.blender.org/manual/en/latest/blender_manual_epub.zip"
+        "html": f"https://docs.blender.org/manual/en/{BLENDER_VERSION}/blender_manual_html.zip",
+        "epub": f"https://docs.blender.org/manual/en/{BLENDER_VERSION}/blender_manual_epub.zip"
     },
     "sections": {
         "demo": [

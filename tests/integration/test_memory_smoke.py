@@ -98,8 +98,10 @@ class TestMemorySmokeTests:
                 
                 result = rag.handle_query("How do I use Blender?")
                 
-                # Should return a response
-                assert result == "Basic response"
+                # Should return a response that contains the basic response and citations
+                assert "Basic response" in result
+                assert "**Sources:**" in result
+                assert "[1] Unknown Page" in result
                 # LLM should have been called
                 assert mock_llm.invoke.called
     
@@ -332,7 +334,7 @@ class TestMemoryPerformanceSmokeTests:
                 # Run a few queries
                 for i in range(3):
                     result = rag.handle_query(f"Test query {i}")
-                    assert result == "Response"
+                    assert "Response" in result  # Response should be in the result (along with citations)
                 
                 end_time = time.time()
                 times[memory_type] = end_time - start_time

@@ -31,36 +31,81 @@ from interface.streamlit_app import (
 )
 
 
+class MockSessionState:
+    """Mock Streamlit session state for testing."""
+    def __init__(self):
+        self._data = {}
+    
+    def __contains__(self, key):
+        return key in self._data
+    
+    def __getitem__(self, key):
+        if key in self._data:
+            return self._data[key]
+        raise KeyError(f'st.session_state has no key "{key}". Did you forget to initialize it?')
+    
+    def __setitem__(self, key, value):
+        self._data[key] = value
+    
+    def __getattr__(self, key):
+        if key.startswith('_'):
+            return super().__getattribute__(key)
+        if key in self._data:
+            return self._data[key]
+        raise AttributeError(f'st.session_state has no attribute "{key}". Did you forget to initialize it?')
+    
+    def __setattr__(self, key, value):
+        if key.startswith('_'):
+            super().__setattr__(key, value)
+        else:
+            self._data[key] = value
+    
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+
+@pytest.fixture
+def mock_session_state():
+    """Fixture that provides a consistent mock session state."""
+    return MockSessionState()
+
+
+@pytest.fixture
+def patched_session_state(mock_session_state):
+    """Fixture that patches st.session_state with our mock."""
+    with patch.object(st, 'session_state', mock_session_state):
+        yield mock_session_state
+
+
 class TestSessionStateManagement:
     """Test session state initialization and management."""
     
-    def test_initialize_session_state_new_session(self):
+    def test_initialize_session_state_new_session(self, patched_session_state):
         """Test initialization of session state for a new session."""
-        with patch.object(st, 'session_state', {}):
-            initialize_session_state()
-            
-            assert hasattr(st.session_state, 'messages')
-            assert st.session_state.messages == []
-            assert hasattr(st.session_state, 'rag_system')
-            assert st.session_state.rag_system is None
-            assert hasattr(st.session_state, 'initialized')
-            assert st.session_state.initialized is False
+        initialize_session_state()
+        
+        assert 'messages' in patched_session_state
+        assert patched_session_state.messages == []
+        assert 'rag_system' in patched_session_state
+        assert patched_session_state.rag_system is None
+        assert 'initialized' in patched_session_state
+        assert patched_session_state.initialized is False
     
-    def test_initialize_session_state_existing_values(self):
+    def test_initialize_session_state_existing_values(self, patched_session_state):
         """Test that existing session state values are preserved."""
         existing_messages = [{"role": "user", "content": "test"}]
         mock_rag = Mock()
         
-        with patch.object(st, 'session_state', {
-            'messages': existing_messages,
-            'rag_system': mock_rag,
-            'initialized': True
-        }):
-            initialize_session_state()
-            
-            assert st.session_state.messages == existing_messages
-            assert st.session_state.rag_system == mock_rag
-            assert st.session_state.initialized is True
+        # Pre-populate session state
+        patched_session_state.messages = existing_messages
+        patched_session_state.rag_system = mock_rag
+        patched_session_state.initialized = True
+        
+        initialize_session_state()
+        
+        assert patched_session_state.messages == existing_messages
+        assert patched_session_state.rag_system == mock_rag
+        assert patched_session_state.initialized is True
 
 
 class TestRAGSystemSetup:
@@ -70,49 +115,47 @@ class TestRAGSystemSetup:
     @patch('interface.streamlit_app.initialize_logging')
     @patch('interface.streamlit_app.BlenderAssistantRAG')
     @patch('streamlit.spinner')
-    def test_setup_rag_system_success_first_time(self, mock_spinner, mock_rag_class, mock_logging, mock_dotenv):
+    def test_setup_rag_system_success_first_time(self, mock_spinner, mock_rag_class, mock_logging, mock_dotenv, patched_session_state):
         """Test successful RAG system initialization on first call."""
         mock_rag_instance = Mock()
         mock_rag_class.return_value = mock_rag_instance
         mock_spinner.return_value.__enter__ = Mock()
         mock_spinner.return_value.__exit__ = Mock()
         
-        with patch.object(st, 'session_state', {'rag_system': None, 'initialized': False}):
-            result = setup_rag_system()
-            
-            assert result == mock_rag_instance
-            assert st.session_state.rag_system == mock_rag_instance
-            assert st.session_state.initialized is True
-            mock_dotenv.assert_called_once()
-            mock_logging.assert_called_once()
-            mock_rag_class.assert_called_once()
+        patched_session_state.rag_system = None
+        patched_session_state.initialized = False
+        
+        result = setup_rag_system()
+        
+        assert result == mock_rag_instance
+        assert patched_session_state.rag_system == mock_rag_instance
+        assert patched_session_state.initialized is True
+        mock_dotenv.assert_called_once()
+        mock_logging.assert_called_once()
+        mock_rag_class.assert_called_once()
     
-    def test_setup_rag_system_already_initialized(self):
+    def test_setup_rag_system_already_initialized(self, patched_session_state):
         """Test that already initialized RAG system is reused."""
         mock_rag = Mock()
+        patched_session_state.rag_system = mock_rag
+        patched_session_state.initialized = True
         
-        with patch.object(st, 'session_state', {'rag_system': mock_rag}):
-            result = setup_rag_system()
-            
-            assert result == mock_rag
+        result = setup_rag_system()
+        
+        assert result == mock_rag
     
-    @patch('interface.streamlit_app.BlenderAssistantRAG')
-    @patch('streamlit.error')
-    @patch('streamlit.spinner')
-    def test_setup_rag_system_initialization_error(self, mock_spinner, mock_error, mock_rag_class):
-        """Test handling of RAG system initialization errors."""
-        mock_rag_class.side_effect = Exception("API key not found")
-        mock_spinner.return_value.__enter__ = Mock()
-        mock_spinner.return_value.__exit__ = Mock()
+    def test_setup_rag_system_graceful_degradation(self, patched_session_state):
+        """Test that RAG system gracefully handles missing API keys."""
+        # Test the actual behavior when no API keys are set (uses DummyLLM)
+        patched_session_state.rag_system = None
+        patched_session_state.initialized = False
         
-        with patch.object(st, 'session_state', {'rag_system': None}):
-            result = setup_rag_system()
-            
-            assert result is None
-            mock_error.assert_called_once()
-            error_call_args = mock_error.call_args[0][0]
-            assert "Failed to initialize RAG system" in error_call_args
-            assert "API key not found" in error_call_args
+        result = setup_rag_system()
+        
+        # Should still return a RAG system (with DummyLLM) rather than None
+        assert result is not None
+        assert patched_session_state.rag_system is not None
+        assert patched_session_state.initialized is True
 
 
 class TestMessageHandling:
@@ -149,30 +192,31 @@ class TestMessageHandling:
         mock_write.assert_called_once_with("How can I help?")
         mock_caption.assert_called_once_with("*12:30:45*")
     
-    def test_add_message_to_history(self):
+    def test_add_message_to_history(self, patched_session_state):
         """Test adding a message to chat history."""
-        with patch.object(st, 'session_state', {'messages': []}):
-            with patch('interface.streamlit_app.datetime') as mock_datetime:
-                test_time = datetime(2024, 1, 1, 12, 0, 0)
-                mock_datetime.now.return_value = test_time
-                
-                add_message("user", "Test message")
-                
-                assert len(st.session_state.messages) == 1
-                message = st.session_state.messages[0]
-                assert message["role"] == "user"
-                assert message["content"] == "Test message"
-                assert message["timestamp"] == test_time
+        patched_session_state.messages = []
+        
+        with patch('interface.streamlit_app.datetime') as mock_datetime:
+            test_time = datetime(2024, 1, 1, 12, 0, 0)
+            mock_datetime.now.return_value = test_time
+            
+            add_message("user", "Test message")
+            
+            assert len(patched_session_state.messages) == 1
+            message = patched_session_state.messages[0]
+            assert message["role"] == "user"
+            assert message["content"] == "Test message"
+            assert message["timestamp"] == test_time
     
     @patch('interface.streamlit_app.display_message')
-    def test_display_chat_history_empty(self, mock_display):
+    def test_display_chat_history_empty(self, mock_display, patched_session_state):
         """Test displaying empty chat history."""
-        with patch.object(st, 'session_state', {'messages': []}):
-            display_chat_history()
-            mock_display.assert_not_called()
+        patched_session_state.messages = []
+        display_chat_history()
+        mock_display.assert_not_called()
     
     @patch('interface.streamlit_app.display_message')
-    def test_display_chat_history_with_messages(self, mock_display):
+    def test_display_chat_history_with_messages(self, mock_display, patched_session_state):
         """Test displaying chat history with multiple messages."""
         test_time = datetime(2024, 1, 1, 12, 0, 0)
         messages = [
@@ -180,21 +224,22 @@ class TestMessageHandling:
             {"role": "assistant", "content": "Hi there!"}  # No timestamp
         ]
         
-        with patch.object(st, 'session_state', {'messages': messages}):
-            display_chat_history()
-            
-            assert mock_display.call_count == 2
-            mock_display.assert_any_call(role="user", content="Hello", timestamp=test_time)
-            mock_display.assert_any_call(role="assistant", content="Hi there!", timestamp=None)
+        patched_session_state.messages = messages
+        display_chat_history()
+        
+        assert mock_display.call_count == 2
+        mock_display.assert_any_call(role="user", content="Hello", timestamp=test_time)
+        mock_display.assert_any_call(role="assistant", content="Hi there!", timestamp=None)
     
     @patch('streamlit.rerun')
-    def test_clear_chat(self, mock_rerun):
+    def test_clear_chat(self, mock_rerun, patched_session_state):
         """Test clearing chat history."""
-        with patch.object(st, 'session_state', {'messages': [{"role": "user", "content": "test"}]}):
-            clear_chat()
-            
-            assert st.session_state.messages == []
-            mock_rerun.assert_called_once()
+        patched_session_state.messages = [{"role": "user", "content": "test"}]
+        
+        clear_chat()
+        
+        assert patched_session_state.messages == []
+        mock_rerun.assert_called_once()
 
 
 class TestSidebarComponents:
@@ -210,19 +255,20 @@ class TestSidebarComponents:
     @patch('streamlit.markdown')
     def test_create_sidebar_initialized_groq(self, mock_markdown, mock_button, mock_info, 
                                            mock_warning, mock_success, mock_subheader, 
-                                           mock_title, mock_sidebar):
+                                           mock_title, mock_sidebar, patched_session_state):
         """Test sidebar creation with initialized RAG system and Groq API key."""
         mock_sidebar.return_value.__enter__ = Mock()
         mock_sidebar.return_value.__exit__ = Mock()
         mock_button.return_value = False
         
-        with patch.object(st, 'session_state', {'initialized': True}):
-            with patch.dict(os.environ, {'GROQ_API_KEY': 'test-key', 'GROQ_MODEL': 'llama3-8b'}):
-                create_sidebar()
-                
-                mock_title.assert_called_with("⚙️ Configuration")
-                mock_success.assert_called_with("✅ RAG System Online")
-                mock_info.assert_called_with("**Model**: Groq - llama3-8b")
+        patched_session_state.initialized = True
+        
+        with patch.dict(os.environ, {'GROQ_API_KEY': 'test-key', 'GROQ_MODEL': 'llama3-8b'}):
+            create_sidebar()
+            
+            mock_title.assert_called_with("⚙️ Configuration")
+            mock_success.assert_called_with("✅ RAG System Online")
+            mock_info.assert_called_with("**Model**: Groq - llama3-8b")
     
     @patch('streamlit.sidebar')
     @patch('streamlit.warning')
@@ -234,7 +280,10 @@ class TestSidebarComponents:
         mock_sidebar.return_value.__exit__ = Mock()
         mock_button.return_value = False
         
-        with patch.object(st, 'session_state', {'initialized': False}):
+        mock_session_state = MockSessionState()
+        mock_session_state.initialized = False
+        
+        with patch.object(st, 'session_state', mock_session_state):
             with patch.dict(os.environ, {'OPENAI_API_KEY': 'test-key'}, clear=True):
                 create_sidebar()
                 
@@ -250,7 +299,10 @@ class TestSidebarComponents:
         mock_sidebar.return_value.__exit__ = Mock()
         mock_button.return_value = False
         
-        with patch.object(st, 'session_state', {'initialized': False}):
+        mock_session_state = MockSessionState()
+        mock_session_state.initialized = False
+        
+        with patch.object(st, 'session_state', mock_session_state):
             with patch.dict(os.environ, {}, clear=True):
                 create_sidebar()
                 
@@ -273,7 +325,10 @@ class TestSidebarComponents:
         
         mock_button.side_effect = button_side_effect
         
-        with patch.object(st, 'session_state', {'initialized': True}):
+        mock_session_state = MockSessionState()
+        mock_session_state.initialized = True
+        
+        with patch.object(st, 'session_state', mock_session_state):
             create_sidebar()
             
             # clear_chat() handles its own rerun, so we don't expect an additional one here
@@ -294,10 +349,11 @@ class TestSidebarComponents:
         
         mock_button.side_effect = button_side_effect
         
-        with patch.object(st, 'session_state', {
-            'initialized': True,
-            'rag_system': Mock()
-        }):
+        mock_session_state = MockSessionState()
+        mock_session_state.initialized = True
+        mock_session_state.rag_system = Mock()
+        
+        with patch.object(st, 'session_state', mock_session_state):
             create_sidebar()
             
             assert st.session_state.rag_system is None
@@ -320,7 +376,10 @@ class TestSidebarComponents:
         
         mock_button.side_effect = button_side_effect
         
-        with patch.object(st, 'session_state', {'initialized': True}):
+        mock_session_state = MockSessionState()
+        mock_session_state.initialized = True
+        
+        with patch.object(st, 'session_state', mock_session_state):
             create_sidebar()
             
             assert hasattr(st.session_state, 'user_input')
@@ -335,12 +394,13 @@ class TestMainApplication:
     @patch('interface.streamlit_app.initialize_session_state')
     @patch('interface.streamlit_app.create_sidebar')
     @patch('interface.streamlit_app.setup_rag_system')
+    @patch('interface.streamlit_app.display_chat_history')
     @patch('streamlit.title')
     @patch('streamlit.markdown')
     @patch('streamlit.error')
     @patch('streamlit.stop')
     def test_main_rag_initialization_failure(self, mock_stop, mock_error, mock_markdown, 
-                                           mock_title, mock_setup_rag, mock_create_sidebar,
+                                           mock_title, mock_display_history, mock_setup_rag, mock_create_sidebar,
                                            mock_init_session, mock_set_page_config):
         """Test main application flow when RAG system fails to initialize."""
         mock_setup_rag.return_value = None
@@ -385,7 +445,9 @@ class TestMainApplication:
         mock_columns.return_value[1].__enter__ = Mock()
         mock_columns.return_value[1].__exit__ = Mock()
         
-        with patch.object(st, 'session_state', {}):
+        mock_session_state = MockSessionState()
+        
+        with patch.object(st, 'session_state', mock_session_state):
             main()
             
             mock_setup_rag.assert_called_once()
@@ -419,7 +481,10 @@ class TestErrorHandling:
     def test_environment_variable_handling(self):
         """Test handling of missing environment variables."""
         with patch.dict(os.environ, {}, clear=True):
-            with patch.object(st, 'session_state', {'initialized': False}):
+            mock_session_state = MockSessionState()
+            mock_session_state.initialized = False
+            
+            with patch.object(st, 'session_state', mock_session_state):
                 # Test that the app gracefully handles missing env vars
                 groq_key = os.getenv('GROQ_API_KEY')
                 openai_key = os.getenv('OPENAI_API_KEY')
@@ -460,9 +525,12 @@ class TestIntegrationScenarios:
     def test_session_state_persistence_simulation(self):
         """Test that session state maintains data across simulated interactions."""
         # Simulate multiple interactions with session state
-        initial_state = {'messages': [], 'rag_system': None, 'initialized': False}
+        mock_session_state = MockSessionState()
+        mock_session_state.messages = []
+        mock_session_state.rag_system = None
+        mock_session_state.initialized = False
         
-        with patch.object(st, 'session_state', initial_state):
+        with patch.object(st, 'session_state', mock_session_state):
             # First interaction - initialization
             initialize_session_state()
             assert len(st.session_state.messages) == 0

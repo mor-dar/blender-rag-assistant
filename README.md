@@ -72,7 +72,7 @@ This project is licensed under the **Creative Commons Attribution-ShareAlike 4.0
 
 This project incorporates content from the **Blender Manual** by the **Blender Documentation Team**, licensed under CC-BY-SA 4.0. All responses that include Blender documentation content include proper attribution and source citations.
 
-- **Source**: https://docs.blender.org/manual/en/latest/
+- **Source**: https://docs.blender.org/manual/en/4.5/
 - **License**: CC-BY-SA 4.0
 - **Attribution**: Blender Documentation Team
 
@@ -160,6 +160,11 @@ The system is highly configurable through environment variables. Copy `.env.exam
 | `MEMORY_TYPE` | string | "none" | Conversation memory type: "none", "window", or "summary" |
 | `MEMORY_WINDOW_SIZE` | int | 6 | Number of recent messages to keep (window memory only) |
 | `MEMORY_MAX_TOKEN_LIMIT` | int | 1000 | Max tokens before summarization (summary memory only) |
+
+#### Documentation Configuration
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `BLENDER_VERSION` | string | "4.5" | Blender documentation version to use for URL generation |
 
 ## Usage - Interface Options
 

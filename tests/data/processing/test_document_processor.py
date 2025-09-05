@@ -113,7 +113,7 @@ class TestDocumentProcessor:
         
         url = processor._path_to_url(path)
         
-        assert url == "https://docs.blender.org/manual/en/latest/basics.html"
+        assert url == "https://docs.blender.org/manual/en/4.5/modeling/basics.html"
 
     # CHUNKING TESTS
 

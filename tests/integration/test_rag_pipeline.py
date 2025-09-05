@@ -24,7 +24,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from rag.rag import BlenderAssistantRAG
 from retrieval.vector_store import VectorStore
 from retrieval.embeddings import EmbeddingGenerator
-from retrieval.retriever import BlenderDocumentRetriever
+from retrieval.retriever import SemanticRetriever, RetrievalResult
+
+
+def create_mock_result(content: str, source: str, title: str, url: str, score: float = 0.9) -> RetrievalResult:
+    """Helper function to create mock retrieval results."""
+    return RetrievalResult(
+        text=content,
+        metadata={'source': source, 'title': title, 'url': url},
+        score=score
+    )
 
 
 @pytest.mark.integration
@@ -56,37 +65,37 @@ class TestRAGPipelineIntegration:
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_complete_query_to_answer_workflow(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_complete_query_to_answer_workflow(self, mock_llm_class, mock_retriever_class):
         """Test the complete workflow from user query to formatted answer with citations."""
         # Set up mocks
         mock_llm = Mock()
         mock_llm.invoke.return_value = "To extrude a face in Blender, select the face and press E key. This creates new geometry extending from the selected face."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
         mock_retrieval_results = [
-            {
-                'content': 'Extrusion is a modeling technique where you create new geometry by extending faces, edges, or vertices.',
-                'metadata': {
+            RetrievalResult(
+                text='Extrusion is a modeling technique where you create new geometry by extending faces, edges, or vertices.',
+                metadata={
                     'source': 'modeling/basics.html',
                     'title': 'Modeling Basics',
-                    'url': 'https://docs.blender.org/manual/en/latest/modeling/basics.html'
+                    'url': 'https://docs.blender.org/manual/en/4.5/modeling/basics.html'
                 },
-                'score': 0.95
-            },
-            {
-                'content': 'The E key is the default hotkey for extrude operations in Blender.',
-                'metadata': {
+                score=0.95
+            ),
+            RetrievalResult(
+                text='The E key is the default hotkey for extrude operations in Blender.',
+                metadata={
                     'source': 'interface/keymap.html',
                     'title': 'Keyboard Shortcuts',
-                    'url': 'https://docs.blender.org/manual/en/latest/interface/keymap.html'
+                    'url': 'https://docs.blender.org/manual/en/4.5/interface/keymap.html'
                 },
-                'score': 0.87
-            }
+                score=0.87
+            )
         ]
-        mock_retriever.retrieve_documents.return_value = mock_retrieval_results
+        mock_retriever.retrieve.return_value = mock_retrieval_results
         mock_retriever_class.return_value = mock_retriever
         
         # Initialize RAG system
@@ -97,32 +106,34 @@ class TestRAGPipelineIntegration:
         result = rag_system.handle_query(user_query)
         
         # Verify retrieval was called
-        mock_retriever.retrieve_documents.assert_called_once_with(user_query, top_k=5)
+        mock_retriever.retrieve.assert_called_once_with(user_query, k=3)
         
         # Verify LLM was called with context and query
         mock_llm.invoke.assert_called_once()
-        llm_call_args = mock_llm.invoke.call_args[0]
-        assert user_query in llm_call_args[0]
-        assert "Extrusion is a modeling technique" in llm_call_args[0]
-        assert "The E key is the default hotkey" in llm_call_args[0]
+        llm_call_kwargs = mock_llm.invoke.call_args[1]
+        assert 'question' in llm_call_kwargs
+        assert 'context' in llm_call_kwargs
+        assert llm_call_kwargs['question'] == user_query
+        assert "Extrusion is a modeling technique" in llm_call_kwargs['context']
+        assert "The E key is the default hotkey" in llm_call_kwargs['context']
         
         # Verify response format includes sources
         assert "To extrude a face in Blender" in result
         assert "**Sources:**" in result
         assert "[1]" in result
         assert "Modeling Basics" in result
-        assert "https://docs.blender.org/manual/en/latest/modeling/basics.html" in result
+        assert "https://docs.blender.org/manual/en/4.5/modeling/basics.html" in result
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_query_with_no_retrieval_results(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_query_with_no_retrieval_results(self, mock_llm_class, mock_retriever_class):
         """Test handling of queries that return no retrieval results."""
         mock_llm = Mock()
         mock_llm.invoke.return_value = "I don't have specific information about that topic in my knowledge base."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = []  # No results
+        mock_retriever.retrieve.return_value = []  # No results
         mock_retriever_class.return_value = mock_retriever
         
         rag_system = BlenderAssistantRAG()
@@ -136,58 +147,64 @@ class TestRAGPipelineIntegration:
         # Should not have sources section since no documents were retrieved
         assert "**Sources:**" not in result
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_conversation_memory_integration(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_conversation_memory_integration(self, mock_llm_class, mock_retriever_class):
         """Test conversation memory across multiple turns."""
         mock_llm = Mock()
         mock_llm.invoke.side_effect = [
             "Blender is a free and open-source 3D computer graphics software.",
             "You can download Blender from the official website at blender.org."
         ]
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = [
-            {
-                'content': 'Blender is a comprehensive 3D creation suite.',
-                'metadata': {
-                    'source': 'introduction.html',
-                    'title': 'Introduction to Blender',
-                    'url': 'https://docs.blender.org/manual/en/latest/introduction.html'
-                },
-                'score': 0.95
-            }
+        mock_retriever.retrieve.return_value = [
+            create_mock_result(
+                'Blender is a comprehensive 3D creation suite.',
+                'introduction.html',
+                'Introduction to Blender',
+                'https://docs.blender.org/manual/en/4.5/introduction.html',
+                0.95
+            )
         ]
         mock_retriever_class.return_value = mock_retriever
         
-        # Initialize RAG system with window memory
-        rag_system = BlenderAssistantRAG(memory_type="window", memory_config={"k": 4})
-        
-        # First query
-        result1 = rag_system.handle_query("What is Blender?")
-        assert "Blender is a free and open-source" in result1
-        
-        # Second query - should have context from first query
-        result2 = rag_system.handle_query("Where can I download it?")
-        assert "blender.org" in result2
-        
-        # Verify that memory context was included in second LLM call
-        assert mock_llm.invoke.call_count == 2
-        second_call_args = mock_llm.invoke.call_args[0][0]
-        # Should contain conversation history
-        assert "What is Blender?" in second_call_args or "conversation" in second_call_args.lower()
+        # Initialize RAG system (memory configured via patching config values)
+        # Need to patch the config constants directly since they're loaded on import
+        with patch('rag.rag.MEMORY_TYPE', 'window'), \
+             patch('rag.rag.MEMORY_WINDOW_SIZE', 4):
+            rag_system = BlenderAssistantRAG()
+            
+            # First query
+            result1 = rag_system.handle_query("What is Blender?")
+            assert "Blender is a free and open-source" in result1
+            
+            # Second query - should have context from first query
+            result2 = rag_system.handle_query("Where can I download it?")
+            assert "blender.org" in result2
+            
+            # Verify that memory context was included in second LLM call
+            assert mock_llm.invoke.call_count == 2
+            second_call_kwargs = mock_llm.invoke.call_args[1]
+            
+            # Should contain conversation history in context
+            # The conversation history gets added as "Conversation History:" section in the context
+            context_contains_history = ("What is Blender?" in second_call_kwargs.get('context', '') or 
+                                      "conversation history" in second_call_kwargs.get('context', '').lower() or
+                                      "blender is a free and open-source" in second_call_kwargs.get('context', '').lower())
+            assert context_contains_history
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_error_handling_in_retrieval(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_error_handling_in_retrieval(self, mock_llm_class, mock_retriever_class):
         """Test error handling when retrieval component fails."""
         mock_llm = Mock()
         mock_llm.invoke.return_value = "I'm experiencing technical difficulties accessing my knowledge base."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.side_effect = Exception("Vector database connection failed")
+        mock_retriever.retrieve.side_effect = Exception("Vector database connection failed")
         mock_retriever_class.return_value = mock_retriever
         
         rag_system = BlenderAssistantRAG()
@@ -199,21 +216,23 @@ class TestRAGPipelineIntegration:
         assert len(result) > 0
         assert "technical difficulties" in result or "error" in result.lower()
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_error_handling_in_llm_generation(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_error_handling_in_llm_generation(self, mock_llm_class, mock_retriever_class):
         """Test error handling when LLM generation fails."""
         mock_llm = Mock()
         mock_llm.invoke.side_effect = Exception("LLM API rate limit exceeded")
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = [
-            {
-                'content': 'Test content',
-                'metadata': {'source': 'test.html', 'title': 'Test', 'url': 'https://test.com'},
-                'score': 0.9
-            }
+        mock_retriever.retrieve.return_value = [
+            create_mock_result(
+                content='Test content',
+                source='test.html',
+                title='Test', 
+                url='https://test.com',
+                score=0.9
+            )
         ]
         mock_retriever_class.return_value = mock_retriever
         
@@ -223,45 +242,39 @@ class TestRAGPipelineIntegration:
         with pytest.raises(Exception, match="LLM API rate limit exceeded"):
             rag_system.handle_query("Test query")
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_citation_formatting_multiple_sources(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_citation_formatting_multiple_sources(self, mock_llm_class, mock_retriever_class):
         """Test proper citation formatting with multiple sources."""
         mock_llm = Mock()
         mock_llm.invoke.return_value = "Blender supports multiple types of objects including meshes, curves, and lights."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
         mock_retrieval_results = [
-            {
-                'content': 'Mesh objects are the primary type of 3D geometry in Blender.',
-                'metadata': {
-                    'source': 'modeling/meshes.html',
-                    'title': 'Working with Meshes',
-                    'url': 'https://docs.blender.org/manual/en/latest/modeling/meshes.html'
-                },
-                'score': 0.95
-            },
-            {
-                'content': 'Curves in Blender can be used for paths, text, and complex shapes.',
-                'metadata': {
-                    'source': 'modeling/curves.html', 
-                    'title': 'Curve Objects',
-                    'url': 'https://docs.blender.org/manual/en/latest/modeling/curves.html'
-                },
-                'score': 0.90
-            },
-            {
-                'content': 'Light objects control illumination and shadows in your scene.',
-                'metadata': {
-                    'source': 'lighting/types.html',
-                    'title': 'Light Types',
-                    'url': 'https://docs.blender.org/manual/en/latest/lighting/types.html'
-                },
-                'score': 0.85
-            }
+            create_mock_result(
+                'Mesh objects are the primary type of 3D geometry in Blender.',
+                'modeling/meshes.html',
+                'Working with Meshes',
+                'https://docs.blender.org/manual/en/4.5/modeling/meshes.html',
+                0.95
+            ),
+            create_mock_result(
+                'Curves in Blender can be used for paths, text, and complex shapes.',
+                'modeling/curves.html',
+                'Curve Objects',
+                'https://docs.blender.org/manual/en/4.5/modeling/curves.html',
+                0.90
+            ),
+            create_mock_result(
+                'Light objects control illumination and shadows in your scene.',
+                'lighting/types.html',
+                'Light Types',
+                'https://docs.blender.org/manual/en/4.5/lighting/types.html',
+                0.85
+            )
         ]
-        mock_retriever.retrieve_documents.return_value = mock_retrieval_results
+        mock_retriever.retrieve.return_value = mock_retrieval_results
         mock_retriever_class.return_value = mock_retriever
         
         rag_system = BlenderAssistantRAG()
@@ -274,13 +287,13 @@ class TestRAGPipelineIntegration:
         assert "[3] Light Types" in result
         
         # Verify URLs are included
-        assert "https://docs.blender.org/manual/en/latest/modeling/meshes.html" in result
-        assert "https://docs.blender.org/manual/en/latest/modeling/curves.html" in result
-        assert "https://docs.blender.org/manual/en/latest/lighting/types.html" in result
+        assert "https://docs.blender.org/manual/en/4.5/modeling/meshes.html" in result
+        assert "https://docs.blender.org/manual/en/4.5/modeling/curves.html" in result
+        assert "https://docs.blender.org/manual/en/4.5/lighting/types.html" in result
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')  
-    def test_summary_memory_integration(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')  
+    def test_summary_memory_integration(self, mock_llm_class, mock_retriever_class):
         """Test conversation summary memory across extended conversation."""
         mock_llm = Mock()
         responses = [
@@ -289,24 +302,22 @@ class TestRAGPipelineIntegration:
             "In Edit mode, you can select vertices, edges, and faces to modify geometry."
         ]
         mock_llm.invoke.side_effect = responses
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = [
-            {
-                'content': 'Edit mode allows direct manipulation of mesh geometry.',
-                'metadata': {
-                    'source': 'modeling/modes.html',
-                    'title': 'Blender Modes',
-                    'url': 'https://docs.blender.org/manual/en/latest/modeling/modes.html'
-                },
-                'score': 0.9
-            }
+        mock_retriever.retrieve.return_value = [
+            create_mock_result(
+                'Edit mode allows direct manipulation of mesh geometry.',
+                'modeling/modes.html',
+                'Blender Modes',
+                'https://docs.blender.org/manual/en/4.5/modeling/modes.html',
+                0.9
+            )
         ]
         mock_retriever_class.return_value = mock_retriever
         
         # Initialize RAG system with summary memory
-        rag_system = BlenderAssistantRAG(memory_type="summary")
+        rag_system = BlenderAssistantRAG()
         
         # Simulate extended conversation
         result1 = rag_system.handle_query("How do I start modeling in Blender?")
@@ -342,20 +353,17 @@ class TestRAGPipelineWithRealComponents:
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
     
-    @patch('rag.rag.get_llm')
-    def test_real_embedding_and_vector_store_integration(self, mock_get_llm):
+    @patch('rag.rag.LLM')
+    def test_real_embedding_and_vector_store_integration(self, mock_llm_class):
         """Test integration with real embedding generator and vector store."""
         # This test uses real embeddings but mocked LLM to avoid API calls
         mock_llm = Mock()
         mock_llm.invoke.return_value = "This is a test response about Blender."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         # Create a minimal vector store with test data
         embedding_generator = EmbeddingGenerator()
-        vector_store = VectorStore(
-            db_path=self.mock_vector_db_path,
-            embedding_generator=embedding_generator
-        )
+        vector_store = VectorStore(db_path=Path(self.mock_vector_db_path))
         
         # Add some test documents
         test_documents = [
@@ -364,7 +372,7 @@ class TestRAGPipelineWithRealComponents:
                 'metadata': {
                     'source': 'intro.html',
                     'title': 'Introduction',
-                    'url': 'https://docs.blender.org/manual/en/latest/intro.html'
+                    'url': 'https://docs.blender.org/manual/en/4.5/intro.html'
                 }
             },
             {
@@ -372,29 +380,33 @@ class TestRAGPipelineWithRealComponents:
                 'metadata': {
                     'source': 'interface/viewport.html',
                     'title': '3D Viewport',
-                    'url': 'https://docs.blender.org/manual/en/latest/interface/viewport.html'
+                    'url': 'https://docs.blender.org/manual/en/4.5/interface/viewport.html'
                 }
             }
         ]
         
         collection_name = "test_blender_docs"
-        vector_store.create_collection(collection_name, dimension=384)  # all-MiniLM-L6-v2 dimension
+        vector_store.create_collection(collection_name)
         
-        for doc in test_documents:
-            embedding = embedding_generator.encode_single(doc['content'])
-            vector_store.add_document(collection_name, doc['content'], embedding, doc['metadata'])
+        # Prepare batch data for add_documents
+        documents = [doc['content'] for doc in test_documents]
+        metadatas = [doc['metadata'] for doc in test_documents]
+        embeddings = [embedding_generator.encode_single(doc['content']).tolist() for doc in test_documents]
+        ids = [f"doc_{i}" for i in range(len(test_documents))]
+        
+        vector_store.add_documents(collection_name, documents, embeddings, metadatas, ids)
         
         # Create retriever with real vector store
-        retriever = BlenderDocumentRetriever(vector_store, collection_name)
+        retriever = SemanticRetriever(db_path=Path(self.mock_vector_db_path), collection_name=collection_name)
         
         # Test retrieval
-        results = retriever.retrieve_documents("What is Blender?", top_k=2)
+        results = retriever.retrieve("What is Blender?", k=2)
         
         assert len(results) > 0
-        assert any("free and open-source" in result['content'].lower() for result in results)
+        assert any("free and open-source" in result.text.lower() for result in results)
         
         # Test with RAG system (mocking the LLM but using real retrieval)
-        with patch('rag.rag.BlenderDocumentRetriever', return_value=retriever):
+        with patch('rag.rag.SemanticRetriever', return_value=retriever):
             rag_system = BlenderAssistantRAG()
             result = rag_system.handle_query("What is Blender?")
             
@@ -416,29 +428,27 @@ class TestRAGPipelineErrorRecovery:
         if 'GROQ_API_KEY' in os.environ:
             del os.environ['GROQ_API_KEY']
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_partial_component_failure_recovery(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_partial_component_failure_recovery(self, mock_llm_class, mock_retriever_class):
         """Test recovery when some components fail but others work."""
         # LLM works, retrieval fails intermittently
         mock_llm = Mock()
         mock_llm.invoke.return_value = "I'll do my best to help even without full access to my knowledge base."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
         # Simulate intermittent failures
-        mock_retriever.retrieve_documents.side_effect = [
+        mock_retriever.retrieve.side_effect = [
             Exception("Connection timeout"),  # First call fails
             [  # Second call succeeds
-                {
-                    'content': 'Recovered content about Blender.',
-                    'metadata': {
-                        'source': 'recovery.html',
-                        'title': 'Recovery Test',
-                        'url': 'https://docs.blender.org/manual/en/latest/recovery.html'
-                    },
-                    'score': 0.8
-                }
+                create_mock_result(
+                    'Recovered content about Blender.',
+                    'recovery.html',
+                    'Recovery Test',
+                    'https://docs.blender.org/manual/en/4.5/recovery.html',
+                    0.8
+                )
             ]
         ]
         mock_retriever_class.return_value = mock_retriever
@@ -455,9 +465,9 @@ class TestRAGPipelineErrorRecovery:
         assert len(result2) > 0
         assert "**Sources:**" in result2
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_memory_persistence_across_errors(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_memory_persistence_across_errors(self, mock_llm_class, mock_retriever_class):
         """Test that conversation memory persists even when individual queries fail."""
         mock_llm = Mock()
         mock_llm.invoke.side_effect = [
@@ -465,19 +475,21 @@ class TestRAGPipelineErrorRecovery:
             Exception("Temporary LLM failure"),  # Second query fails
             "Third response, building on our previous conversation."  # Third succeeds
         ]
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = [
-            {
-                'content': 'Test content',
-                'metadata': {'source': 'test.html', 'title': 'Test', 'url': 'https://test.com'},
-                'score': 0.9
-            }
+        mock_retriever.retrieve.return_value = [
+            create_mock_result(
+                'Test content',
+                'test.html',
+                'Test',
+                'https://test.com',
+                0.9
+            )
         ]
         mock_retriever_class.return_value = mock_retriever
         
-        rag_system = BlenderAssistantRAG(memory_type="window", memory_config={"k": 4})
+        rag_system = BlenderAssistantRAG()
         
         # First query succeeds
         result1 = rag_system.handle_query("First query")
@@ -508,23 +520,25 @@ class TestRAGPipelinePerformance:
         if 'GROQ_API_KEY' in os.environ:
             del os.environ['GROQ_API_KEY']
     
-    @patch('rag.rag.BlenderDocumentRetriever')
-    @patch('rag.rag.get_llm')
-    def test_query_processing_time_reasonable(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')
+    @patch('rag.rag.LLM')
+    def test_query_processing_time_reasonable(self, mock_llm_class, mock_retriever_class):
         """Test that query processing completes in reasonable time."""
         import time
         
         mock_llm = Mock()
         mock_llm.invoke.return_value = "Quick response for performance testing."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = [
-            {
-                'content': 'Performance test content',
-                'metadata': {'source': 'perf.html', 'title': 'Performance', 'url': 'https://test.com'},
-                'score': 0.9
-            }
+        mock_retriever.retrieve.return_value = [
+            create_mock_result(
+                'Performance test content',
+                'perf.html',
+                'Performance',
+                'https://test.com',
+                0.9
+            )
         ]
         mock_retriever_class.return_value = mock_retriever
         
@@ -541,29 +555,29 @@ class TestRAGPipelinePerformance:
         assert len(result) > 0
         assert "Quick response" in result
     
-    @patch('rag.rag.BlenderDocumentRetriever')  
-    @patch('rag.rag.get_llm')
-    def test_memory_doesnt_degrade_performance_significantly(self, mock_get_llm, mock_retriever_class):
+    @patch('rag.rag.SemanticRetriever')  
+    @patch('rag.rag.LLM')
+    def test_memory_doesnt_degrade_performance_significantly(self, mock_llm_class, mock_retriever_class):
         """Test that conversation memory doesn't significantly slow down queries."""
         import time
         
         mock_llm = Mock()
         mock_llm.invoke.return_value = "Memory performance test response."
-        mock_get_llm.return_value = mock_llm
+        mock_llm_class.return_value = mock_llm
         
         mock_retriever = Mock()
-        mock_retriever.retrieve_documents.return_value = []
+        mock_retriever.retrieve.return_value = []
         mock_retriever_class.return_value = mock_retriever
         
         # Test without memory
-        rag_system_no_memory = BlenderAssistantRAG(memory_type=None)
+        rag_system_no_memory = BlenderAssistantRAG()
         
         start_time = time.time()
         rag_system_no_memory.handle_query("Test query")
         no_memory_time = time.time() - start_time
         
         # Test with memory
-        rag_system_with_memory = BlenderAssistantRAG(memory_type="window", memory_config={"k": 4})
+        rag_system_with_memory = BlenderAssistantRAG()
         
         # Add some conversation history
         for i in range(3):

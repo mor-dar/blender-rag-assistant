@@ -179,7 +179,8 @@ class TestRAGWithWindowMemory:
                 {"output": "Here's how to model in Blender..."}
             )
             
-            assert result == "Here's how to model in Blender..."
+            expected_result = "Here's how to model in Blender...\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+            assert result == expected_result
     
     def test_query_with_window_memory_existing_history(self, mock_retrieval_results):
         """Test query with existing conversation history in window memory."""
@@ -215,7 +216,8 @@ class TestRAGWithWindowMemory:
             assert conversation_history in call_args['context']
             assert "Blender modeling documentation content" in call_args['context']
             
-            assert result == "To extrude, press E..."
+            expected_result = "To extrude, press E...\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+            assert result == expected_result
     
     def test_clear_memory_functionality(self, mock_retrieval_results):
         """Test clearing window memory."""
@@ -281,7 +283,8 @@ class TestRAGWithSummaryMemory:
             call_args = mock_llm.invoke.call_args[1]
             assert conversation_summary in call_args['context']
             
-            assert result == "Animation basics explained..."
+            expected_result = "Animation basics explained...\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+            assert result == expected_result
     
     def test_summary_memory_without_llm_model(self, mock_retrieval_results):
         """Test summary memory initialization fails gracefully without LLM model."""
@@ -338,7 +341,8 @@ class TestRAGMemoryErrorHandling:
             result = rag.handle_query(query)
             
             # Should fall back to normal operation without memory
-            assert result == "Fallback response..."
+            expected_result = "Fallback response...\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+            assert result == expected_result
             # Verify it still tried to call LLM with just retrieval context
             mock_llm.invoke.assert_called()
     
@@ -370,7 +374,8 @@ class TestRAGMemoryErrorHandling:
             result = rag.handle_query(query)
             
             # Should still return response despite save failure
-            assert result == "Response generated..."
+            expected_result = "Response generated...\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+            assert result == expected_result
             mock_memory.save_context.assert_called_once()
     
     def test_clear_memory_error_handling(self, mock_retrieval_results):
@@ -456,6 +461,7 @@ class TestRAGMemoryEdgeCases:
             # Should still include conversation history even with no retrieval results
             call_args = mock_llm.invoke.call_args[1]
             assert "Previous conversation" in call_args['context']
+            # With empty retrieval results, no citations should be appended
             assert result == "No relevant docs found, but here's general info..."
     
     def test_memory_info_with_error(self, mock_retrieval_results):
@@ -548,7 +554,8 @@ class TestRAGMemoryIntegration:
             for i, (query, response) in enumerate(conversations):
                 mock_llm.invoke.return_value = response
                 result = rag.handle_query(query)
-                assert result == response
+                expected_result = response + "\n\n**Sources:**\n[1] Unknown Page\n[2] Unknown Page"
+                assert result == expected_result
                 
                 # Check memory info updates
                 info = rag.get_memory_info()

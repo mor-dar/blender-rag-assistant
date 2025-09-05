@@ -20,11 +20,12 @@ except ImportError as e:
 from .text_cleaner import TextCleaner
 from .semantic_chunker import SemanticChunker
 
-# Import config for tokenizer encoding
+# Import config for tokenizer encoding and blender version
 try:
-    from utils.config import TOKENIZER_ENCODING
+    from utils.config import TOKENIZER_ENCODING, BLENDER_VERSION
 except ImportError:
     TOKENIZER_ENCODING = 'cl100k_base'  # fallback
+    BLENDER_VERSION = '4.5'  # fallback
 
 
 class DocumentProcessor:
@@ -276,13 +277,13 @@ class DocumentProcessor:
                 # Remove .html extension and reconstruct with proper version
                 if url_path.endswith('.html'):
                     url_path = url_path[:-5]  # Remove .html
-                return f"https://docs.blender.org/manual/en/4.5/{url_path}.html"
+                return f"https://docs.blender.org/manual/en/{BLENDER_VERSION}/{url_path}.html"
                 
         except (ValueError, IndexError):
             pass
         
         # Fallback to simple filename if path parsing fails
-        return f"https://docs.blender.org/manual/en/4.5/{file_path.stem}.html"
+        return f"https://docs.blender.org/manual/en/{BLENDER_VERSION}/{file_path.stem}.html"
 
     def chunk_text(self, text: str, metadata: Dict, use_semantic: bool = True) -> List[Dict]:
         """Split text into chunks using either semantic or legacy strategy.

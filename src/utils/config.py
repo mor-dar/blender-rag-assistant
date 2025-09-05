@@ -126,6 +126,9 @@ MEMORY_TYPE = read_env_variable('MEMORY_TYPE', 'none')  # none, window, summary
 MEMORY_WINDOW_SIZE = get_env_int('MEMORY_WINDOW_SIZE', 6)
 MEMORY_MAX_TOKEN_LIMIT = get_env_int('MEMORY_MAX_TOKEN_LIMIT', 1000)
 
+# === Documentation Configuration ===
+BLENDER_VERSION = read_env_variable('BLENDER_VERSION', '4.5')
+
 
 # === Helper Functions ===
 
