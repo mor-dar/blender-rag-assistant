@@ -1,0 +1,162 @@
+{
+  "metrics": {
+    "queries": 10,
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0,
+    "mrr": 1.0,
+    "median_latency_sec": 0.012,
+    "k": 5
+  },
+  "per_query": [
+    {
+      "question": "What are Blender UI buttons and how are they generally interacted with?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.354
+    },
+    {
+      "question": "Where are buttons used across Blender and what kinds of actions do they provide?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.015
+    },
+    {
+      "question": "What do the small decorators next to a property do (e.g., add keyframe, reset, drivers)?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.012
+    },
+    {
+      "question": "How can I tell if a property has keyframes or a driver from the UI and act on it?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.012
+    },
+    {
+      "question": "How do I use the Eyedropper to sample a color from the screen?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.011
+    },
+    {
+      "question": "Can the Eyedropper pick data like objects or materials, and how is it used?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.012
+    },
+    {
+      "question": "How do numeric fields work and what shortcuts help with precise input or stepping?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.011
+    },
+    {
+      "question": "Which field types are available (e.g., toggles, sliders, text) and how do you enter values?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/fields.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.012
+    },
+    {
+      "question": "How do menus work in Blender's UI, including context menus and popovers?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/eyedropper.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.011
+    },
+    {
+      "question": "How do I open a menu for a button or property to access additional actions?",
+      "gold_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html"
+      ],
+      "retrieved_urls": [
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/buttons.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/menus.html",
+        "https://docs.blender.org/manual/en/4.5/interface/controls/buttons/decorators.html"
+      ],
+      "first_hit_rank": 1,
+      "latency_sec": 0.01
+    }
+  ]
+}
