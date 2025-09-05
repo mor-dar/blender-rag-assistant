@@ -478,6 +478,35 @@ class TestErrorHandling:
                 
                 mock_add_message.assert_called_with("assistant", "❌ Error generating response: LLM API error")
     
+    @patch('streamlit.error')
+    @patch('streamlit.spinner')
+    @patch('interface.streamlit_app.BlenderAssistantRAG')
+    @patch('interface.streamlit_app.initialize_logging')
+    @patch('interface.streamlit_app.dotenv.load_dotenv')
+    def test_setup_rag_system_initialization_failure(self, mock_dotenv, mock_logging, mock_rag_class, mock_spinner, mock_error, patched_session_state):
+        """Test setup_rag_system when RAG initialization fails."""
+        # Mock the spinner context manager properly
+        mock_spinner_context = Mock()
+        mock_spinner.return_value = mock_spinner_context
+        mock_spinner_context.__enter__ = Mock(return_value=mock_spinner_context)
+        mock_spinner_context.__exit__ = Mock(return_value=None)
+        
+        # Make BlenderAssistantRAG raise an exception
+        mock_rag_class.side_effect = Exception("Failed to initialize RAG system")
+        
+        patched_session_state.rag_system = None
+        patched_session_state.initialized = False
+        
+        result = setup_rag_system()
+        
+        # Should return None due to exception
+        assert result is None
+        # Should call st.error with the error message
+        mock_error.assert_called_once()
+        # Check that the error message contains the expected text
+        error_call_args = mock_error.call_args[0][0]
+        assert "Failed to initialize RAG system" in error_call_args
+    
     def test_environment_variable_handling(self):
         """Test handling of missing environment variables."""
         with patch.dict(os.environ, {}, clear=True):
@@ -521,6 +550,164 @@ class TestIntegrationScenarios:
             assert mock_add_message.call_count == 2
             mock_add_message.assert_any_call("user", user_query)
             mock_add_message.assert_any_call("assistant", "Here's how to model in Blender...")
+    
+    @patch('streamlit.container')
+    @patch('streamlit.columns')
+    @patch('streamlit.button')
+    @patch('streamlit.chat_input')
+    @patch('interface.streamlit_app.add_message')
+    @patch('interface.streamlit_app.display_message')
+    @patch('streamlit.spinner')
+    @patch('streamlit.caption')
+    def test_main_application_random_question_flow(self, mock_caption, mock_spinner, mock_display_message, 
+                                                 mock_add_message, mock_chat_input, mock_button, 
+                                                 mock_columns, mock_container, patched_session_state):
+        """Test main application flow when random question button is clicked."""
+        # Mock the UI components
+        mock_container.return_value.__enter__ = Mock()
+        mock_container.return_value.__exit__ = Mock()
+        mock_col1, mock_col2 = Mock(), Mock()
+        mock_columns.return_value = [mock_col1, mock_col2]
+        mock_col1.__enter__ = Mock()
+        mock_col1.__exit__ = Mock()
+        mock_col2.__enter__ = Mock()
+        mock_col2.__exit__ = Mock()
+        mock_spinner.return_value.__enter__ = Mock()
+        mock_spinner.return_value.__exit__ = Mock()
+        
+        mock_chat_input.return_value = ""  # No chat input
+        
+        # Mock random button click (🎲 button)
+        def button_side_effect(text, **kwargs):
+            if "🎲" in text:
+                return True
+            return False
+        mock_button.side_effect = button_side_effect
+        
+        # Mock RAG system
+        mock_rag = Mock()
+        mock_rag.handle_query.return_value = "Random question response"
+        patched_session_state.rag_system = mock_rag
+        
+        # Patch the main app components
+        with patch('interface.streamlit_app.setup_rag_system', return_value=mock_rag):
+            with patch('interface.streamlit_app.display_chat_history'):
+                with patch('streamlit.title'):
+                    with patch('streamlit.markdown'):
+                        with patch('interface.streamlit_app.initialize_session_state'):
+                            with patch('interface.streamlit_app.create_sidebar'):
+                                with patch('streamlit.set_page_config'):
+                                    with patch('random.choice', return_value="What is Blender?"):
+                                        with patch('time.time', side_effect=[1.0, 2.0]):
+                                            main()
+        
+        # Verify that a random question was processed
+        mock_rag.handle_query.assert_called_once_with(query="What is Blender?")
+        mock_add_message.assert_any_call("user", "What is Blender?")
+        mock_add_message.assert_any_call("assistant", "Random question response")
+    
+    @patch('streamlit.container')
+    @patch('streamlit.columns')
+    @patch('streamlit.button')
+    @patch('streamlit.chat_input')
+    @patch('interface.streamlit_app.add_message')
+    @patch('interface.streamlit_app.display_message')
+    @patch('streamlit.spinner')
+    @patch('streamlit.error')
+    def test_main_application_query_error_handling(self, mock_error, mock_spinner, mock_display_message,
+                                                  mock_add_message, mock_chat_input, mock_button,
+                                                  mock_columns, mock_container, patched_session_state):
+        """Test main application error handling during query processing."""
+        # Mock the UI components
+        mock_container.return_value.__enter__ = Mock()
+        mock_container.return_value.__exit__ = Mock()
+        mock_col1, mock_col2 = Mock(), Mock()
+        mock_columns.return_value = [mock_col1, mock_col2]
+        mock_col1.__enter__ = Mock()
+        mock_col1.__exit__ = Mock()
+        mock_col2.__enter__ = Mock()
+        mock_col2.__exit__ = Mock()
+        
+        # Mock the spinner context manager to NOT suppress the exception
+        mock_spinner_context = Mock()
+        mock_spinner.return_value = mock_spinner_context
+        mock_spinner_context.__enter__ = Mock(return_value=mock_spinner_context)
+        # Make the context manager NOT suppress exceptions
+        mock_spinner_context.__exit__ = Mock(return_value=None)
+        
+        mock_chat_input.return_value = "Test query"  # User input
+        mock_button.return_value = False  # No random button click
+        
+        # Mock RAG system that fails
+        mock_rag = Mock()
+        mock_rag.handle_query.side_effect = Exception("API error")
+        patched_session_state.rag_system = mock_rag
+        
+        # Patch the main app components
+        with patch('interface.streamlit_app.setup_rag_system', return_value=mock_rag):
+            with patch('interface.streamlit_app.display_chat_history'):
+                with patch('streamlit.title'):
+                    with patch('streamlit.markdown'):
+                        with patch('interface.streamlit_app.initialize_session_state'):
+                            with patch('interface.streamlit_app.create_sidebar'):
+                                with patch('streamlit.set_page_config'):
+                                    main()
+        
+        # Verify error handling - The error should be logged and displayed
+        mock_add_message.assert_any_call("user", "Test query")
+        mock_add_message.assert_any_call("assistant", "❌ Error generating response: API error")
+        # The st.error should be called with the error message
+        mock_error.assert_called_once_with("❌ Error generating response: API error")
+    
+    @patch('streamlit.container')  
+    @patch('streamlit.columns')
+    @patch('streamlit.button')
+    @patch('streamlit.chat_input')
+    def test_main_application_user_input_from_session_state(self, mock_chat_input, mock_button,
+                                                          mock_columns, mock_container, patched_session_state):
+        """Test main application handling user input from session state (sample question selection)."""
+        # Mock the UI components
+        mock_container.return_value.__enter__ = Mock()
+        mock_container.return_value.__exit__ = Mock()
+        mock_col1, mock_col2 = Mock(), Mock()
+        mock_columns.return_value = [mock_col1, mock_col2]
+        mock_col1.__enter__ = Mock()
+        mock_col1.__exit__ = Mock()
+        mock_col2.__enter__ = Mock()
+        mock_col2.__exit__ = Mock()
+        
+        mock_chat_input.return_value = ""  # No chat input
+        mock_button.return_value = False   # No random button click
+        
+        # Set user input in session state (simulates sidebar sample question selection)
+        patched_session_state.user_input = "Sample question from sidebar"
+        
+        # Mock RAG system
+        mock_rag = Mock()
+        mock_rag.handle_query.return_value = "Sample response"
+        patched_session_state.rag_system = mock_rag
+        
+        # We need to test the del operation independently since the main() function is complex
+        # Instead, let's test that the user_input was accessed and the query was processed
+        with patch('interface.streamlit_app.setup_rag_system', return_value=mock_rag):
+            with patch('interface.streamlit_app.display_chat_history'):
+                with patch('interface.streamlit_app.add_message') as mock_add_message:
+                    with patch('interface.streamlit_app.display_message'):
+                        with patch('streamlit.title'):
+                            with patch('streamlit.markdown'):
+                                with patch('interface.streamlit_app.initialize_session_state'):
+                                    with patch('interface.streamlit_app.create_sidebar'):
+                                        with patch('streamlit.set_page_config'):
+                                            with patch('streamlit.spinner') as mock_spinner:
+                                                mock_spinner.return_value.__enter__ = Mock()
+                                                mock_spinner.return_value.__exit__ = Mock()
+                                                with patch('time.time', side_effect=[1.0, 2.0]):
+                                                    main()
+        
+        # Verify that the query was processed
+        mock_rag.handle_query.assert_called_once_with(query="Sample question from sidebar")
+        mock_add_message.assert_any_call("user", "Sample question from sidebar")
+        mock_add_message.assert_any_call("assistant", "Sample response")
     
     def test_session_state_persistence_simulation(self):
         """Test that session state maintains data across simulated interactions."""

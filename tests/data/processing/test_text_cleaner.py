@@ -391,3 +391,100 @@ class TestTextCleaner:
         second_clean = cleaner.clean_text(first_clean)
         
         assert first_clean == second_clean, "Cleaning should be idempotent"
+
+    # Additional tests to cover missing lines
+    def test_html_entity_decode_numeric_edge_cases(self, cleaner):
+        """Test numeric HTML entity decoding edge cases and error handling.""" 
+        # Test cases that would trigger the ValueError and OverflowError paths in decode_numeric_entity
+        # These need to be malformed entities that html.unescape doesn't handle
+        
+        # Import patch to mock html.unescape to skip the first processing stage
+        from unittest.mock import patch
+        
+        # Test the custom numeric entity handler directly by bypassing html.unescape
+        with patch('html.unescape', side_effect=lambda x: x):  # Return input unchanged
+            test_cases = [
+                # Test ValueError in decode_numeric_entity (lines 116-117) 
+                ("&#abc;", "&#abc;"),  # Non-numeric should remain unchanged
+                ("&#999999999999999999999999999999999;", "&#999999999999999999999999999999999;"),  # Overflow case
+                ("&#65;", "A"),  # Valid case
+                ("&#-1;", "&#-1;"),  # Negative number (invalid)
+                ("&#", "&#"),  # Incomplete entity
+                ("&#;", "&#;"),  # Empty numeric entity
+            ]
+            
+            for input_text, expected in test_cases:
+                result = cleaner._decode_html_entities(input_text)
+                assert result == expected, f"Failed for input: {input_text}"
+
+    def test_html_entity_decode_exception_handling(self, cleaner):
+        """Test HTML entity decoding exception handling (lines 122-124)."""
+        # Import patch properly
+        from unittest.mock import patch
+        
+        # Mock html.unescape to raise exception to test the exception handler
+        with patch('html.unescape', side_effect=Exception("Mock error")):
+            input_text = "&amp; test"
+            result = cleaner._decode_html_entities(input_text)
+            # Should return original text when exception occurs
+            assert result == input_text
+
+    def test_unicode_normalization_exception_handling(self, cleaner):
+        """Test Unicode normalization exception handling (lines 155-157).""" 
+        # Import patch properly
+        from unittest.mock import patch
+        
+        # Mock unicodedata.normalize to raise exception
+        with patch('unicodedata.normalize', side_effect=Exception("Mock error")):
+            input_text = "test text"
+            result = cleaner._normalize_unicode(input_text)
+            # Should return original text when exception occurs
+            assert result == input_text
+
+    def test_clean_special_characters_control_char_handling(self, cleaner):
+        """Test control character handling in _clean_special_characters (line 215)."""
+        # Test character that should be kept (alphanumeric or underscore)
+        test_text = "valid_text123"
+        result = cleaner._clean_special_characters(test_text)
+        assert result == test_text
+        
+        # Test with control characters mixed with preserved blocks
+        test_text_with_control = "`code\x01block`\x02normal_text\x03"
+        result = cleaner._clean_special_characters(test_text_with_control)
+        # Should preserve code block and normal text but remove control chars
+        assert "`code\x01block`" in result  # Preserved block should remain
+        assert "normal_text" in result
+        assert "\x02" not in result
+        assert "\x03" not in result
+
+    def test_analyze_text_issues_control_character_detection(self, cleaner):
+        """Test detection of control characters in analyze_text_issues (lines 266-267)."""
+        # Test with control characters (excluding allowed tab, newline, carriage return)
+        test_text = "Normal text\x00with\x01control\x1fchars"
+        issues = cleaner.analyze_text_issues(test_text)
+        
+        # Should detect control characters and add to problematic_chars
+        assert issues['stats']['control_chars'] == 3  # \x00, \x01, \x1f
+        assert len(issues['problematic_chars']) == 3
+        
+        # Check that problematic chars are recorded with hex codes
+        problematic_chars = [char for char, hex_code in issues['problematic_chars']]
+        assert '\x00' in problematic_chars
+        assert '\x01' in problematic_chars  
+        assert '\x1f' in problematic_chars
+        
+        # Check hex codes are correct
+        hex_codes = [hex_code for char, hex_code in issues['problematic_chars']]
+        assert '0x0' in hex_codes
+        assert '0x1' in hex_codes
+        assert '0x1f' in hex_codes
+
+    def test_analyze_text_issues_allowed_control_chars(self, cleaner):
+        """Test that allowed control characters are not flagged as problematic."""
+        # Test with allowed control characters (tab=9, newline=10, carriage return=13)
+        test_text = "Normal\ttext\nwith\rallowed\ncontrol\tchars"
+        issues = cleaner.analyze_text_issues(test_text)
+        
+        # Should not count allowed control chars as problematic
+        assert issues['stats']['control_chars'] == 0
+        assert len(issues['problematic_chars']) == 0

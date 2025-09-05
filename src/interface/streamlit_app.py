@@ -7,7 +7,7 @@ allowing users to interact with the RAG system through a browser.
 
 import streamlit as st
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Optional
 import time
 import os
 from datetime import datetime
@@ -233,14 +233,14 @@ def main():
                 
                 response_time = end_time - start_time
                 logging.info(f"Response generated in {response_time:.2f} seconds")
-            
-            # Add assistant response to history
-            add_message("assistant", response)
-            
-            # Display assistant response
-            with chat_container:
-                display_message("assistant", response, datetime.now())
-                st.caption(f"*Response time: {response_time:.2f}s*")
+                
+                # Add assistant response to history
+                add_message("assistant", response)
+                
+                # Display assistant response
+                with chat_container:
+                    display_message("assistant", response, datetime.now())
+                    st.caption(f"*Response time: {response_time:.2f}s*")
         
         except Exception as e:
             error_message = f"❌ Error generating response: {str(e)}"
