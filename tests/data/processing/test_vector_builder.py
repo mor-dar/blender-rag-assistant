@@ -400,6 +400,20 @@ def sample_html_content():
     </html>
     """
 
+    # MISSING COVERAGE TEST - Batch Addition Failure
+    
+    def test_build_collection_batch_failure_logging(self, vector_builder, sample_docs):
+        """Test logging when batch addition fails (line 110)."""
+        from unittest.mock import patch
+        
+        # Mock the vector store to fail batch additions
+        with patch.object(vector_builder.vector_store, 'add_documents', return_value=False):
+            # This should log errors for failed batches
+            collection_name = vector_builder.build_collection(sample_docs, batch_size=10)
+            
+            # Should still return a collection name even if some batches fail
+            assert collection_name is not None
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

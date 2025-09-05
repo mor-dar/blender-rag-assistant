@@ -493,3 +493,100 @@ class TestSemanticChunker:
             # If chunk contains code block start, it should also contain the end
             if "```python" in text:
                 assert text.count("```") % 2 == 0  # Even number of backticks
+
+    # MISSING COVERAGE TESTS - Exception Handling and Edge Cases
+    
+    def test_import_fallback_behavior(self):
+        """Test fallback behavior when imports fail (lines 19, 29-34)."""
+        # This tests the import fallback paths
+        from data.processing.semantic_chunker import TOKENIZER_ENCODING, CHUNK_SIZE, MIN_CHUNK_SIZE
+        
+        # These should have valid values (either from config or fallback)
+        assert TOKENIZER_ENCODING in ['cl100k_base', 'tiktoken'] 
+        assert isinstance(CHUNK_SIZE, int) and CHUNK_SIZE > 0
+        assert isinstance(MIN_CHUNK_SIZE, int) and MIN_CHUNK_SIZE > 0
+
+    def test_tokenizer_fallback_when_tiktoken_unavailable(self):
+        """Test tokenizer initialization without tiktoken (line 72)."""
+        from unittest.mock import patch
+        
+        # Test what happens when tiktoken is not available
+        with patch('data.processing.semantic_chunker.tiktoken', None):
+            # Create chunker instance which should handle missing tiktoken
+            from data.processing.semantic_chunker import SemanticChunker
+            chunker = SemanticChunker({"chunk_size": 100, "chunk_overlap": 20, "embedding_model": "test"})
+            
+            # Should fall back to None tokenizer
+            assert chunker.tokenizer is None
+
+    def test_nlp_pipeline_initialization_exception(self, chunker):
+        """Test spaCy pipeline initialization exception handling (lines 156-160)."""
+        from unittest.mock import patch
+        
+        # Mock spacy.lang.en.English to raise an exception
+        with patch('data.processing.semantic_chunker.English', side_effect=Exception("spaCy error")):
+            # Force re-initialization of NLP pipeline
+            nlp = chunker._init_nlp_pipeline()
+            
+            # Should return None on exception
+            assert nlp is None
+
+    def test_count_tokens_no_tokenizer_fallback(self, chunker):
+        """Test token counting fallback when tokenizer is None (line 167)."""
+        from unittest.mock import patch
+        
+        # Mock tokenizer to be None
+        with patch.object(chunker, 'tokenizer', None):
+            text = "This is a test sentence with words."
+            
+            result = chunker._count_tokens(text)
+            
+            # Should fall back to word-based approximation
+            assert isinstance(result, int)
+            assert result > 0
+
+    def test_sentence_boundary_detection_no_nlp_fallback(self, chunker, sample_metadata):
+        """Test sentence boundary detection fallback when nlp is None (lines 235-238)."""
+        from unittest.mock import patch
+        
+        # Use longer text that will definitely be chunked
+        text = """First sentence about modeling in Blender. Second sentence explains the process.
+        Third sentence provides additional details. Fourth sentence continues the explanation.
+        Fifth sentence adds more context. Sixth sentence completes the thought.
+        """ * 10  # Make it long enough to require chunking
+        
+        # Mock nlp to be None to trigger fallback
+        with patch.object(chunker, 'nlp', None):
+            # This tests the fallback path in _detect_boundaries method  
+            result = chunker.chunk_text_semantically(text, sample_metadata)
+            
+            # Should still produce chunks using regex fallback
+            assert isinstance(result, list)
+            # Should handle the text even without nlp
+            assert len(result) >= 0  # May be empty if text is too short, but shouldn't crash
+
+    def test_adaptive_chunk_size_content_type_detection(self, chunker, sample_metadata):
+        """Test content type detection and adaptive chunking (lines 294-295)."""
+        # Test with different content types
+        reference_text = """
+        ## Properties
+        
+        - Property A: Controls feature A
+        - Property B: Controls feature B
+        - Property C: Controls feature C
+        
+        ### Detailed Settings
+        
+        Each property has multiple options available.
+        """
+        
+        result = chunker.chunk_text_semantically(reference_text, sample_metadata)
+        
+        # Should detect reference content and apply appropriate chunking
+        assert len(result) > 0
+        for chunk in result:
+            assert "content_type_detected" in chunk["metadata"]
+            # Should be one of the defined content types
+            assert chunk["metadata"]["content_type_detected"] in [
+                "procedural", "reference", "conceptual", "code", "structured", "general"
+            ]

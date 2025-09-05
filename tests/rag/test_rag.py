@@ -438,3 +438,75 @@ class TestRAGEdgeCases:
             except (TypeError, AttributeError):
                 # This is also acceptable - clear error for invalid input
                 pass
+
+    # MISSING COVERAGE TESTS - API Key and Memory Edge Cases
+    
+    def test_dummy_llm_fallback_behavior(self):
+        """Test dummy LLM behavior when no API keys are available (line 20)."""
+        from rag.rag import DummyLLM
+        
+        dummy_llm = DummyLLM()
+        result = dummy_llm.invoke(query="test", context="test context")
+        
+        assert isinstance(result, str)
+        assert "not available" in result.lower() or "api key" in result.lower()
+
+    def test_context_formatting_with_section(self):
+        """Test context formatting when section is available (line 120)."""
+        from unittest.mock import Mock, patch
+        import importlib
+        from retrieval.retriever import RetrievalResult
+        
+        # Create mock retrieval results with sections
+        results = [
+            RetrievalResult(
+                text="Test content",
+                metadata={
+                    "title": "Test Page",
+                    "section": "Test Section", 
+                    "url": "https://test.com/page"
+                },
+                score=0.95
+            )
+        ]
+        
+        with patch('utils.config.GROQ_API_KEY', 'test-key'):
+            import rag.rag
+            importlib.reload(rag.rag)
+            from rag.rag import BlenderAssistantRAG
+            
+            rag = BlenderAssistantRAG()
+            formatted = rag._format_context(results)
+            
+            # Should include section in parentheses
+            assert "Test Page (Test Section)" in formatted
+
+    def test_citations_formatting_with_subsection_different_from_title(self):
+        """Test citation formatting when subsection differs from title (line 161)."""
+        from unittest.mock import Mock, patch
+        import importlib
+        from retrieval.retriever import RetrievalResult
+        
+        # Create mock retrieval results where subsection differs from title
+        results = [
+            RetrievalResult(
+                text="Test content",
+                metadata={
+                    "title": "Main Page",
+                    "subsection": "Specific Section",
+                    "url": "https://docs.blender.org/test"
+                },
+                score=0.95
+            )
+        ]
+        
+        with patch('utils.config.GROQ_API_KEY', 'test-key'):
+            import rag.rag
+            importlib.reload(rag.rag)
+            from rag.rag import BlenderAssistantRAG
+            
+            rag = BlenderAssistantRAG()
+            citations = rag._format_citations(results)
+            
+            # Should include both title and subsection
+            assert "Main Page: Specific Section" in citations
