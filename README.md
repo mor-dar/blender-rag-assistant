@@ -1,5 +1,9 @@
 # Blender Bot
 
+[![codecov](https://codecov.io/gh/mor-dar/blender-rag-assistant/branch/main/graph/badge.svg)](https://codecov.io/gh/mor-dar/blender-rag-assistant)
+[![Tests](https://github.com/mor-dar/blender-rag-assistant/workflows/Test%20Coverage/badge.svg)](https://github.com/mor-dar/blender-rag-assistant/actions)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
 An intelligent documentation assistant for Blender 3D software, built using Retrieval-Augmented Generation (RAG) architecture. This project demonstrates advanced agentic AI capabilities for Ready Tensor's Agentic AI Developer Certification Program (Module 1).
 
 ## Project Overview

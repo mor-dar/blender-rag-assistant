@@ -213,3 +213,4 @@ convenience_installs.sh
 data/raw*
 data/vector_db
 lectures
+publication/

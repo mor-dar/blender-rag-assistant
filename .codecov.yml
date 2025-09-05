@@ -1,0 +1,32 @@
+# Codecov configuration for Blender RAG Assistant
+
+coverage:
+  status:
+    project:
+      default:
+        target: 90%        # Target 90% overall coverage
+        threshold: 2%      # Allow 2% decrease
+        branches:
+          - main
+    patch:
+      default:
+        target: 85%        # Require 85% coverage for new code
+        threshold: 5%      # Allow 5% decrease
+
+  ignore:
+    - "tests/"           # Don't count test files in coverage
+    - "scripts/"         # Don't count scripts in coverage
+    - "lectures/"        # Don't count lecture materials
+    - "publication/"     # Don't count publication materials
+    - "**/__init__.py"   # Don't require 100% coverage for __init__ files
+    - "main.py"          # Don't count main entry point
+
+comment:
+  layout: "reach, diff, flags, files, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+github_checks:
+  annotations: true
